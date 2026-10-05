@@ -1,4 +1,4 @@
-/* Legacy Lore Clubhouse v1.7 (city split + tap-to-swap + pen-role pins; engine v0.9.8 dedicated LHS (closer does not count)) (v1.6: Total Zone by position for all 30 franchises 1953-2015; v1.5.1: closer record rule 22a; v1.5: engine v0.9.5 Baseball-Reference match fixes, save-rate tiebreaker for closer order, Jr. names; v1.4: relief innings 100% runs allowed, closer order on Reliever score + ERA+, Big Moments Shutdown score for relief; v1.3.1: packed data, each team decoded on demand by loader.js; same UI and numbers as v1.3): all 30 franchises with a team picker (v1.2: engine v0.9.3; v1.1 added the Big Moments option: October + Clutch bonuses, OFF by default). All numbers come from LL_DATA (exported from the engine files by export_app_data.py)
+/* Legacy Lore Clubhouse v1.8 (engine v0.9.8): History / Almanac / Lore tabs next to the roster build (lore.js, data/lore/*.js), cross-linked with player cards. v1.7 (city split + tap-to-swap + pen-role pins; engine v0.9.8 dedicated LHS (closer does not count)) (v1.6: Total Zone by position for all 30 franchises 1953-2015; v1.5.1: closer record rule 22a; v1.5: engine v0.9.5 Baseball-Reference match fixes, save-rate tiebreaker for closer order, Jr. names; v1.4: relief innings 100% runs allowed, closer order on Reliever score + ERA+, Big Moments Shutdown score for relief; v1.3.1: packed data, each team decoded on demand by loader.js; same UI and numbers as v1.3): all 30 franchises with a team picker (v1.2: engine v0.9.3; v1.1 added the Big Moments option: October + Clutch bonuses, OFF by default). All numbers come from LL_DATA (exported from the engine files by export_app_data.py)
    or from LLEngine.build (the JS port of engine_v5.py, verified equal to Python). */
 (function(){
 'use strict';
@@ -100,9 +100,9 @@ function bmTags(kind,x,big){ const b=bmOf(kind,x.id); if(!b) return ''; const m=
 const lum=h=>{ const v=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255); return 0.2126*v[0]+0.7152*v[1]+0.0722*v[2]; };   // app v1.3: light secondary colours are darkened for text accents
 const shade=h=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.slice(i,i+2),16)*0.6).toString(16).padStart(2,'0')).join('');
 function nav(view){ const k=CUR&&CUR.t.key;
-  $('#teams').innerHTML=`<a href="#/" class="${view==='home'?'on':''}">All teams</a><select id="teampick" aria-label="Pick a team"><option value="">${k?'':'Pick a team…'}</option>${GROUPS.map(([lg,dv])=>`<optgroup label="${lg} ${dv}">${byGroup(lg,dv).map(t=>`<option value="${t.key}" ${k===t.key?'selected':''}>${esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select>`+`<a href="#/rules" class="${view==='rules'?'on':''}">Rules</a><a href="#/about" class="${view==='about'?'on':''}">About</a>`;
+  $('#teams').innerHTML=`<a href="#/" class="${view==='home'?'on':''}">All teams</a><select id="teampick" aria-label="Pick a team"><option value="">${k?'':'Pick a team…'}</option>${GROUPS.map(([lg,dv])=>`<optgroup label="${lg} ${dv}">${byGroup(lg,dv).map(t=>`<option value="${t.key}" ${k===t.key?'selected':''}>${esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select>`+`<a href="#/history" class="${view==='league'?'on':''}">History</a><a href="#/rules" class="${view==='rules'?'on':''}">Rules</a><a href="#/about" class="${view==='about'?'on':''}">About</a>`;
   $('#ver').textContent='Engine '+engLabel();
-  $('#subnav').innerHTML=(k&&['club','hit','pit'].includes(view))?[['club','Clubhouse',''],['hit','Hitters','/hitters'],['pit','Pitchers','/pitchers']].map(([v,l,s])=>`<a href="#/${k}${s}" class="${v===view?'on':''}">${l}</a>`).join(''):'';
+  $('#subnav').innerHTML=(k&&['club','hit','pit','history','almanac','lore'].includes(view))?[['club','Clubhouse',''],['hit','Hitters','/hitters'],['pit','Pitchers','/pitchers'],['history','History','/history'],['almanac','Almanac','/almanac'],['lore','Lore','/lore']].map(([v,l,s])=>`<a href="#/${k}${s}" class="${v===view?'on':''}${['history','almanac','lore'].includes(v)?' lt':''}">${l}</a>`).join(''):'';
   if(k){ document.documentElement.style.setProperty('--t1',CUR.t.colors[0]); document.documentElement.style.setProperty('--t2',lum(CUR.t.colors[1])>0.55?(CUR.t.colors[1]==='#C4CED3'?'#8c99a6':shade(CUR.t.colors[1])):CUR.t.colors[1]); }
   else { document.documentElement.style.setProperty('--t1','#1b2a41'); document.documentElement.style.setProperty('--t2','#c8102e'); }
 }
@@ -163,6 +163,10 @@ function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; c
    <div class="grid"><div class="card"><h3>Notable omissions: hitters</h3><table><thead><tr><th>Player</th><th class="n">Total</th><th>Why not</th></tr></thead><tbody>${omitH}</tbody></table><p class="small muted">Top Total APEX hitters not on the 26. "Best start" = his highest value at a position he may start; bench slots follow the rule order C2 → UTIL-IF → OF4 → FLEX → BAT.</p></div>
    <div class="card"><h3>Notable omissions: pitchers</h3><table><thead><tr><th>Pitcher</th><th class="n">Comb.</th><th>Scores</th></tr></thead><tbody>${omitP}</tbody></table></div></div>
    </div>`; }
+// ---------- v1.8: History / Almanac / Lore tabs (separate spots, same clubhouse: names open the player card) ----------
+function vTeamLore(k,view,sub){ compute(k); nav(view); const t=CUR.t;
+  const body=view==='history'?LLLoreUI.history(t.key,sub):view==='almanac'?LLLoreUI.almanac(t.key):LLLoreUI.lore(t.key);
+  return `<div class="panel"><div class="teamhead"><div><h1>${esc(t.name)} ${view==='history'?'History':view==='almanac'?'Almanac':'Lore'}</h1><div class="meta">${esc(t.history)} · ${t.since}–2026 (${t.seasons} seasons)</div></div><div class="tools">${cityPicker(CUR.t0)}</div></div>${body}</div>`; }
 function E_sorted(a,k){ return a.slice().sort((x,y)=>y[k]-x[k]); }
 // tables
 let SORT={hit:['total',false],pit:['total',false]}, FILT={q:'',pos:'',role:''};
@@ -203,7 +207,7 @@ function vAbout(){ CUR=null; nav('about');
   <h2>Not in v1 (compared with the old ChatGPT-hosted app)</h2><ul>
   <li><b>APEX-Oct</b> (postseason) is back in app v1.1 as the optional <b>Big Moments</b> switch (October + Clutch bonuses; OFF by default, see <a href="#/rules">Rules</a>, BM1–BM5). The default scores stay pure ${esc(D.version)}.</li>
   <li><b>APEX-V</b>: retired as an engine input (the v0.4 tie window was retired; Total is the tie-break), so there is no APEX-V number to show.</li>
-  <li>All 30 current franchises are in (app v1.3), each with its full franchise history including relocations (e.g. Senators → Twins, Browns → Orioles, Expos → Nationals). Teams with fewer than ${D.thin_n} qualified hitters or pitchers carry a <b>Thin pool</b> tag. History, lore and "The Moment I Remember" content, the Baseball Through the Years almanac, the side-by-side research roster, and the old import/export of history material are not part of v1.</li></ul>
+  <li>All 30 current franchises are in (app v1.3), each with its full franchise history including relocations (e.g. Senators → Twins, Browns → Orioles, Expos → Nationals). Teams with fewer than ${D.thin_n} qualified hitters or pitchers carry a <b>Thin pool</b> tag. History, Almanac and Lore tabs arrived in app v1.8 (team tabs + a league <a href="#/history">History</a> reader; Story Bible teams have the deepest Lore). "The Moment I Remember" content, the side-by-side research roster, and the old import/export of history material are not in yet.</li></ul>
   <h2>Sources inside the data</h2><ul>${D.teams.map(t=>`<li>${esc(t.name)}: <code>${esc(t.files.hitters)}</code>, <code>${esc(t.files.pitchers)}</code>, <code>${esc(t.files.out)}</code>, <code>${esc(t.files.bat)}</code>, <code>${esc(t.files.pit)}</code></li>`).join('')}</ul></div>`; }
 // ---------- player card ----------
 
@@ -285,6 +289,7 @@ function card(kind,n){ if(!CUR) return; const t=CUR.t, o=CUR.o; let h=kind==='h'
     html+=pinUI('p',n,h);
     html+=`<h3>Seasons</h3><div class="scroll" style="max-height:280px"><table><thead><tr><th>Year</th><th>Role</th><th class="n">G</th><th class="n">IP</th><th class="n">ERA</th><th class="n hide-s">FIP</th><th class="n hide-s">LI</th><th class="n">Wins</th></tr></thead><tbody>${s.seasons.map(r=>`<tr><td>${r.y}</td><td>${r.role==='S'?'Start':'Relief'}</td><td class="n">${r.G}</td><td class="n">${fx(r.IP)}</td><td class="n">${fx(r.ERA,2)}</td><td class="n hide-s">${fx(r.FIP,2)}</td><td class="n hide-s">${r.role==='R'?fx(r.li,2):''}</td><td class="n"><b>${fx(r.w,2)}</b></td></tr>`).join('')}</tbody></table></div>`;
   }
+  if(window.LLLoreUI) html+=LLLoreUI.card(CUR.t0.key,h.id);   // v1.8: history threads, awards, league-leading lines, HOF
   $('#mbody').innerHTML=html; $('#modal').hidden=false; $('#modal').scrollTop=0; }
 function bmCard(kind,x){ const b=bmOf(kind,x.id); if(!b) return ''; const t0=CUR.t0, tn=t0.short;
   const base=(kind==='h'?t0.hitters:t0.pitchers).find(r=>r.id===x.id); const C=D.bm.caps, w2=v=>E.fmt(v,2), w2p=v=>E.fmt(v,2,true);
@@ -322,14 +327,17 @@ let VIEW='';
 function render(){ const h=location.hash.replace(/^#\/?/,'').split('/'); const k=h[0]; let html;
   if(TEAM(k)&&!LLData.loaded(k)){ const t=TEAM(k); $('#app').innerHTML=`<p class="loading">Loading ${esc(t.name)}…</p>`; foot();   // app v1.3.1: decode this team, then draw
     LLData.ensure(k).then(()=>{ if(location.hash.replace(/^#\/?/,'').split('/')[0]===k) render(); },e=>{ $('#app').innerHTML=`<div class="banner">Could not load ${esc(t.name)}: ${esc(e.message)}</div>`; }); return; }
-  if(TEAM(k)){ VIEW=h[1]||''; html=VIEW==='hitters'?vHit(k):VIEW==='pitchers'?vPit(k):vClub(k); }
+  if(TEAM(k)){ VIEW=h[1]||''; html=VIEW==='hitters'?vHit(k):VIEW==='pitchers'?vPit(k):['history','almanac','lore'].includes(VIEW)?vTeamLore(k,VIEW,h[2]):vClub(k); }
+  else if(k==='history'){ CUR=null; nav('league'); html=LLLoreUI.league(h[1]); }
   else if(k==='rules') html=vRules(); else if(k==='about') html=vAbout(); else html=vHome();
   $('#app').innerHTML=html;
   foot();
+  { const sn=$('#subnav'), on=sn&&sn.querySelector('a.on'); if(on&&sn.scrollWidth>sn.clientWidth) sn.scrollLeft=Math.max(0,on.offsetLeft-sn.offsetLeft-(sn.clientWidth-on.offsetWidth)/2); }   // phone: keep the active tab visible
+  if(TEAM(k)&&VIEW==='p'&&h[2]&&CUR){ const id=decodeURIComponent(h[2]); const x=CUR.t.hitters.find(r=>r.id===id)||CUR.t.pitchers.find(r=>r.id===id); if(x) card(CUR.t.hitters.includes(x)?'h':'p',x.name); }   // #/<team>/p/<id> deep link
   const q=$('#q'); if(q){ q.oninput=e=>{ FILT.q=e.target.value; const pos=q.selectionStart; render(); const q2=$('#q'); q2.focus(); q2.setSelectionRange(pos,pos); }; }
   const pf=$('#posf'); if(pf) pf.onchange=e=>{ FILT.pos=e.target.value; if(FILT.pos) SORT.hit=['pval',false]; else if(SORT.hit[0]==='pval') SORT.hit=['total',false]; render(); };
   const rf=$('#rolef'); if(rf) rf.onchange=e=>{ FILT.role=e.target.value; render(); };
-  const tp=$('#teampick'); if(tp) tp.onchange=e=>{ if(e.target.value) location.hash='#/'+e.target.value+(VIEW&&TEAM(e.target.value)&&CUR?(VIEW==='hitters'||VIEW==='pitchers'?'/'+VIEW:''):''); };
+  const tp=$('#teampick'); if(tp) tp.onchange=e=>{ if(e.target.value) location.hash='#/'+e.target.value+(VIEW&&TEAM(e.target.value)&&CUR?(['hitters','pitchers','history','almanac','lore'].includes(VIEW)?'/'+VIEW:''):''); };
   const cp=$('#citypick'); if(cp) cp.onchange=e=>{ saveCity(CUR.t0.key,e.target.value); compute(CUR.t0.key); render(); toast(e.target.value?'City: '+e.target.selectedOptions[0].text:'Full franchise'); };
 }
 document.addEventListener('click',e=>{
@@ -364,6 +372,10 @@ document.addEventListener('change',e=>{ const t=e.target;
   if(t.dataset.act==='rule-guard') setPins(p=>{ p.rules=p.rules||{}; if(t.checked) delete p.rules.primary_pos_guard; else p.rules.primary_pos_guard=false; }); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#modal').hidden=true; });
 window.addEventListener('hashchange',()=>{ FILT={q:'',pos:'',role:''}; $('#modal').hidden=true; render(); window.scrollTo(0,0); });
+if(window.LLLoreUI) LLLoreUI.init({esc,rerender:()=>render(),cur:()=>CUR,
+  kindOf:id=>{ if(!CUR) return null; if(CUR.t.hitters.some(r=>r.id===id)) return 'h'; if(CUR.t.pitchers.some(r=>r.id===id)) return 'p'; return null; },
+  nameOf:id=>{ if(!CUR) return null; const x=CUR.t.hitters.find(r=>r.id===id)||CUR.t.pitchers.find(r=>r.id===id); return x?x.name:null; },
+  kindByName:n=>{ if(!CUR) return null; if(CUR.t.hitters.some(r=>r.name===n)) return 'h'; if(CUR.t.pitchers.some(r=>r.name===n)) return 'p'; return null; }});
 render(); setTimeout(()=>runVerify(0),50);
 window.LL_SELFCHECK=()=>({done:verified(),ok:allOk(),VERIFY,VERIFY_BM});   // for the headless test
 window.LL_TEST={render,card,setBM,sort:(tb,col,asc)=>{ SORT[tb]=[col,asc]; },filt:f=>{ FILT=Object.assign({q:'',pos:'',role:''},f); }};   // app v1.3.1: used by tests/dom_compare.js only
