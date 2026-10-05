@@ -88,3 +88,10 @@ footer{max-width:1180px;margin:0 auto;padding:10px 14px 40px;color:var(--muted);
 h2.grp{font-size:16px;margin:18px 0 0;border:none}
 .tag.thin{background:#fff3cd;color:#7a5a00;border:1px solid #f0d27a}
 .teamcard .tag.thin{margin-left:0}
+
+/* v1.7 tap-to-swap */
+.fp[data-swap]:active,.swapbtn:active{transform:scale(.97)}
+.swapbtn{cursor:pointer;border:none}
+.tag.cost{background:#fde8e8;color:#9b1c1c;border:1px solid #f0b4b4}
+.tag.ok{background:#e7f6ec;color:#1f7a3a;border:1px solid #b7dcc0}
+.fp.gap{opacity:.55;cursor:default}

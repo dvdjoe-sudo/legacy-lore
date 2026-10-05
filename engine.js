@@ -1,6 +1,6 @@
 /* Legacy Lore clubhouse engine, JavaScript port of engine_v5.py selection logic (v0.9.3; selection logic unchanged since v0.9.2), lines "starting 8" to the end.
    Input: one team from LL_DATA (hitter and pitcher score tables written by engine_v5.py) plus fan-override pins:
-     pins = {roster:{name:slot}, lineup:{name:1-9}, staff:{name:'ROT'|'PEN'}, rules:{dh_defense_first:false|{k,min_gap}, primary_pos_guard:false|{pct}}}
+     pins = {roster:{name:slot}, lineup:{name:1-9}, staff:{name:'ROT'|'PEN'|'CL'|'SU1'|'SU2'|'LHS'|'LONG'|'MID1'|'MID2'}, rules:{dh_defense_first:false|{k,min_gap}, primary_pos_guard:false|{pct}}}
    Output: the same structure as v5_out.json. Every string mirrors the Python f-strings so the receipts can be diffed. */
 (function(root){
 'use strict';
@@ -43,6 +43,11 @@ function prep(rows){ return rows.map(r=>{const o={}; for(const k in r) o[k]=(r[k
 function build(team,pins){
   pins=pins||{}; const HF=new Set(team.hfloat||[]);
   const S=team._S||(team._S=prep(team.hitters)), PX=team._P||(team._P=prep(team.pitchers));
+  const THIN=!!(team.city||team.thinCity);
+  if(!S.length){
+    const gaps=POS9.concat(['C2','UTIL','FLEX','BAT','SP1','SP2','SP3','SP4','SP5','CL','SU1','SU2','LHS','LONG','MID1','MID2']);
+    return {start:{},bench:{},rotation:{},pen:{},lineup:[],log:[],hfix:[],dh_table:[],pen_q:[],rot_scores:[],pit_omit:[],close_calls:[],rot_log:[],pen_log:[],pit_tie_log:[],dh_rule_log:[],dh_swap:null,team_runs:0,guard_log:[],util_failed:[],gaps,thin:true,pins:pins||{},_objs:{start:{},bench:{},rot:[],pen:[],roles:{}}};
+  }
   const byName=new Map(S.map(h=>[h.name,h]));
   const gpos=(h,p)=>(p==='LF'||p==='RF')?h.g_LF+h.g_RF:h['g_'+p];
   const elig=(h,p)=>p==='DH'?true:(gpos(h,p)>=h.elig_min&&gpos(h,p)>0);
@@ -70,12 +75,17 @@ function build(team,pins){
       if(!((mask>>j)&1)&&start_ok(h,p)){ const m2=mask|(1<<j); const v=[s+h['v_'+p],t+h.total]; const cur=nw.get(m2)||[-1e9,-1e9];
         if(gt(v,cur)) nw.set(m2,[v[0],v[1],l.concat([[p,i]])]); } } }
     dp=nw; });
-  const start={}; for(const [p,i] of dp.get(511)[2]) start[p]=cand[i]; for(const p in pinned_start) start[p]=pinned_start[p];
+  let bestMask=511, bestVal=dp.get(511);
+  if(!bestVal){ bestVal=[-1e9,-1e9,[]]; for(const [m,v] of dp){ if(gt(v,bestVal)){ bestVal=v; bestMask=m; } } }
+  const start={}; const gaps=[];
+  if(bestVal[2]&&bestVal[2].length) for(const [p,i] of bestVal[2]) start[p]=cand[i];
+  for(const p in pinned_start) if(pinned_start[p]) start[p]=pinned_start[p];
+  if(THIN) for(const p of POS9) if(!(p in start)) gaps.push(p);
   // DH glove rule
   const DHR=('dh_defense_first' in rules)?rules.dh_defense_first:{k:3,min_gap:1.0}; const dhrule_log=[]; let dhswap=null;
-  if(DHR&&!('DH' in pinned_start)){
+  if(DHR&&start.DH&&!('DH' in pinned_start)){
     const D0=start.DH, k=DHR.k!==undefined?DHR.k:3, mg=DHR.min_gap!==undefined?DHR.min_gap:1.0;
-    const contested=POS.filter(p=>!(p in pinned_start)&&start_ok(D0,p));
+    const contested=POS.filter(p=>!(p in pinned_start)&&start[p]&&start_ok(D0,p));
     const pool=[[D0,'DH']].concat(contested.map(p=>[start[p],p])).map((x,i)=>[x,i]).sort((a,b)=>(-a[0][0].dhAPEX)-(-b[0][0].dhAPEX)||a[1]-b[1]).map(x=>x[0]).slice(0,k);
     dhrule_log.push(`candidates (top ${k} by DH-Prod among the DH and starters at positions he is eligible for): `+pool.map(([h,q])=>`${h.name} (${q}, DH-Prod ${f1(h.dhAPEX)})`).join(', '));
     if(pool.some(([h,q])=>q==='DH')){ let best=null;
@@ -88,43 +98,45 @@ function build(team,pins){
       } else dhrule_log.push(`no swap: the DH does not have the better glove by >= ${f1(mg)} runs/150`);
     }
   }
-  for(const p of POS){ const h=start[p]; const mp=most_played(h);
+  for(const p of POS){ const h=start[p]; if(!h) continue; const mp=most_played(h);
     guard_log.push(`${p}: ${h.name} - ${trunc(gpos(h,p))} of ${trunc(h.G_team)} franchise G (${f0(100*gpos(h,p)/Math.max(h.G_team,1))}%) at ${(p==='LF'||p==='RF')?'LF/RF':p}; most-played ${mp==='LF'?'LF/RF':mp}`+((p in pinned_start)?' (pinned)':'')); }
-  const TEAM_RUNS=pySum(POS9.map(p=>start[p]['v_'+p]));
+  const TEAM_RUNS=pySum(POS9.filter(p=>start[p]).map(p=>start[p]['v_'+p]));
   const tie_log=[];
-  { const lf=start.LF, rf=start.RF; if(!('LF' in pinned_start)&&!('RF' in pinned_start)&&lf.g_RF+rf.g_LF>lf.g_LF+rf.g_RF){ start.LF=rf; start.RF=lf; } }
-  const used=new Set(Object.values(start).map(h=>h.name)); for(const n of pin_names) used.add(n);
-  for(const p of POS){ const h=start[p]; const ex=new Set(used); ex.delete(h.name);
+  { const lf=start.LF, rf=start.RF; if(lf&&rf&&!('LF' in pinned_start)&&!('RF' in pinned_start)&&lf.g_RF+rf.g_LF>lf.g_LF+rf.g_RF){ start.LF=rf; start.RF=lf; } }
+  const used=new Set(Object.values(start).filter(Boolean).map(h=>h.name)); for(const n of pin_names) used.add(n);
+  for(const p of POS){ const h=start[p]; if(!h) continue; const ex=new Set(used); ex.delete(h.name);
     const top=sortBy(S.filter(x=>!ex.has(x.name)&&start_ok(x,p)),['v_'+p,'total'],false);
     const alt=top.filter(x=>x.name!==h.name)[0]; let over=null; const best=top[0];
     const hp=sortBy(S.filter(x=>!pin_names.has(x.name)),p,false)[0];
-    if(hp.name!==h.name&&!elig(hp,p)) over=`${hp.name} has a higher ${p} score (${f1(hp[p])}) but only ${trunc(gpos(hp,p))} G there (< ${f0(hp.elig_min)} needed)`;
-    else if(hp.name!==h.name&&!start_ok(hp,p)) over=`${hp.name} has a higher ${p} score (${f1(hp[p])}) but ${p} is only ${f0(100*gpos(hp,p)/hp.G_team)}% of his franchise games and not his most-played position (start guard)`;
+    if(hp&&hp.name!==h.name&&!elig(hp,p)) over=`${hp.name} has a higher ${p} score (${f1(hp[p])}) but only ${trunc(gpos(hp,p))} G there (< ${f0(hp.elig_min)} needed)`;
+    else if(hp&&hp.name!==h.name&&!start_ok(hp,p)) over=`${hp.name} has a higher ${p} score (${f1(hp[p])}) but ${p} is only ${f0(100*gpos(hp,p)/hp.G_team)}% of his franchise games and not his most-played position (start guard)`;
     if(dhswap&&p===dhswap.pos) over=`DH glove rule: ${dhswap.fld} fields ${p} (${p1(dhswap.r_f)}/150 vs ${dhswap.dh} ${p1(dhswap.r_d)}/150); cost ${f1(dhswap.cost)} W vs the value-only alignment`;
     if(p in pinned_start){ rec(p,h,`${p}-APEX ${f1(h[p])} (total ${f1(h.total)})`,`starting ${p}`,'pinned by Joseph','Fan override'); continue; }
-    if(best.name!==h.name){ const q=Object.entries(start).filter(([q,x])=>x.name===best.name).map(x=>x[0]); over=`${best.name} has a higher value at ${p} (${f0(best['v_'+p])}) but the team-runs assignment uses him at ${used.has(best.name)?q[0]:'?'}`; }
+    if(best&&best.name!==h.name){ const q=Object.entries(start).filter(([q,x])=>x&&x.name===best.name).map(x=>x[0]); over=`${best.name} has a higher value at ${p} (${f0(best['v_'+p])}) but the team-runs assignment uses him at ${used.has(best.name)?q[0]:'?'}`; }
     rec(p,h,`Value ${f1(h['v_'+p])} W = Off ${f1(h.offAPEX)} (hit ${f1(h.batAPEX)} + BR) + Def ${p1(h['def_'+p])} (fielding ${p1(h['rf150_'+p])} runs/150 + pos ${p1(POSADJ[p])}); Total ${f1(h.total)} (#${h.total_rank}); ${trunc(gpos(h,p))} G at ${(p==='LF'||p==='RF')?'LF/RF':p}`,
-      `starting ${p} (eligible: >= min(25% of franchise G, 100); start guard: >= 25% of his franchise G or most-played position)`,`next eligible by value: ${alt.name} ${f1(alt['v_'+p])} W`,over);
-    close(p,h.name,h['v_'+p],alt.name,alt['v_'+p],`value at ${p} (W)`);
+      `starting ${p} (eligible: >= min(25% of franchise G, 100); start guard: >= 25% of his franchise G or most-played position)`,alt?`next eligible by value: ${alt.name} ${f1(alt['v_'+p])} W`:'no eligible alternate',over);
+    if(alt) close(p,h.name,h['v_'+p],alt.name,alt['v_'+p],`value at ${p} (W)`);
   }
   // DH
-  const dh=start.DH; used.add(dh.name);
-  { const ex=new Set(used); ex.delete(dh.name); var R=sortBy(S.filter(x=>!ex.has(x.name)),'dhAPEX',false); }
-  const R2=R.filter(x=>x.name!==dh.name);
-  let better_bats=POS.map(p=>start[p]).filter(x=>x.dhAPEX>dh.dhAPEX); if(dhswap) better_bats=[];
-  if('DH' in pinned_start) rec('DH',dh,`DH-Prod ${f1(dh.dhAPEX)} W (hitting only); total ${f1(dh.total)}, #${dh.total_rank}`,'DH','pinned by Joseph','Fan override');
-  else rec('DH',dh,`DH-Prod ${f1(dh.dhAPEX)} W (0.25 bat + 0.40 OPS+ runs + 0.35 power runs + replacement; no fielding); DH-Prod + baserunning (reference only) ${f1(dh.dhbrAPEX)}; pure Hit-APEX ${f1(dh.batAPEX)}; total ${f1(dh.total)}, #${dh.total_rank})`,'DH chosen jointly with the 8 fielders (max team runs)',
-    `best bench bats: ${R2[0].name} ${f1(R2[0].dhAPEX)}, ${R2[1].name} ${f1(R2[1].dhAPEX)}`,
-    dhswap?`DH glove rule: weaker glove DHs (${dhswap.dh} ${p1(dhswap.r_d)}/150 at ${dhswap.pos} vs ${dhswap.fld} ${p1(dhswap.r_f)}); cost ${f1(dhswap.cost)} W`:(better_bats.length?better_bats.map(x=>`${x.name} out-hits him (DH-Prod ${f0(x.dhAPEX)}) but adds more as a fielder`).join('; '):null));
-  if(!('DH' in pinned_start)&&!dhswap) close('DH',dh.name,dh.dhAPEX,R2[0].name,R2[0].dhAPEX,'DH-Prod (W)');
-  const r1=x=>npRound(x,1);
-  const dh_table=R.slice(0,8).map(x=>({name:x.name,dhAPEX:r1(x.dhAPEX),dhbrAPEX:r1(x.dhbrAPEX),batAPEX:r1(x.batAPEX),dhAPEX_wp:r1(x.dhAPEX_wp),batAPEX_wp:r1(x.batAPEX_wp),rbat600:r1(x.rbat600),total:r1(x.total)}));
+  const dh=start.DH; let R=[], R2=[], dh_table=[]; const r1=x=>npRound(x,1);
+  if(dh){
+    used.add(dh.name);
+    { const ex=new Set(used); ex.delete(dh.name); R=sortBy(S.filter(x=>!ex.has(x.name)),'dhAPEX',false); }
+    R2=R.filter(x=>x.name!==dh.name);
+    let better_bats=POS.map(p=>start[p]).filter(x=>x&&x.dhAPEX>dh.dhAPEX); if(dhswap) better_bats=[];
+    if('DH' in pinned_start) rec('DH',dh,`DH-Prod ${f1(dh.dhAPEX)} W (hitting only); total ${f1(dh.total)}, #${dh.total_rank}`,'DH','pinned by Joseph','Fan override');
+    else rec('DH',dh,`DH-Prod ${f1(dh.dhAPEX)} W (0.25 bat + 0.40 OPS+ runs + 0.35 power runs + replacement; no fielding); DH-Prod + baserunning (reference only) ${f1(dh.dhbrAPEX)}; pure Hit-APEX ${f1(dh.batAPEX)}; total ${f1(dh.total)}, #${dh.total_rank})`,'DH chosen jointly with the 8 fielders (max team runs)',
+      R2.length?`best bench bats: ${R2[0].name} ${f1(R2[0].dhAPEX)}${R2[1]?`, ${R2[1].name} ${f1(R2[1].dhAPEX)}`:''}`:'no bench bats left',
+      dhswap?`DH glove rule: weaker glove DHs (${dhswap.dh} ${p1(dhswap.r_d)}/150 at ${dhswap.pos} vs ${dhswap.fld} ${p1(dhswap.r_f)}); cost ${f1(dhswap.cost)} W`:(better_bats.length?better_bats.map(x=>`${x.name} out-hits him (DH-Prod ${f0(x.dhAPEX)}) but adds more as a fielder`).join('; '):null));
+    if(!('DH' in pinned_start)&&!dhswap&&R2[0]) close('DH',dh.name,dh.dhAPEX,R2[0].name,R2[0].dhAPEX,'DH-Prod (W)');
+    dh_table=R.slice(0,8).map(x=>({name:x.name,dhAPEX:r1(x.dhAPEX),dhbrAPEX:r1(x.dhbrAPEX),batAPEX:r1(x.batAPEX),dhAPEX_wp:r1(x.dhAPEX_wp),batAPEX_wp:r1(x.batAPEX_wp),rbat600:r1(x.rbat600),total:r1(x.total)}));
+  }
   // bench
   const bench={}; const rest=()=>sortBy(S.filter(x=>!used.has(x.name)),'total',false);
   function take(slot,df,need,fit,why,key){ key=key||'total';
     const pn=Object.entries(RP_PINS).filter(([n,sl])=>sl===slot).map(x=>x[0]);
     if(pn.length){ const h=byName.get(pn[0]); rec(slot,h,`total ${f1(h.total)}`,need,'pinned by Joseph','Fan override'); bench[slot]=h; return; }
-    df=sortBy(df,key,false); if(!df.length) return; const h=df[0], t=rest()[0];
+    df=sortBy(df,key,false); if(!df.length){ if(THIN) gaps.push(slot); return; } const h=df[0], t=rest()[0]||h;
     const over=t.name===h.name?null:(why?why(t,h):`${t.name} (#${t.total_rank}) higher total but doesn't fit ${slot}`);
     rec(slot,h,`total ${f1(h.total)} (#${h.total_rank})`,need,fit(h),over); used.add(h.name); bench[slot]=h;
     if(df.length>1) close(slot,h.name,h[key],df[1].name,df[1][key],(key==='dhAPEX'?'DH-Prod':'Total APEX')+' among eligible (W)');
@@ -132,31 +144,40 @@ function build(team,pins){
   take('C2',rest().filter(h=>elig(h,'C')),'backup C (mandatory)',h=>`C-APEX ${f1(h.C)}; ${pyStr(h.g_C,HF.has('g_C'))} G at C`,(t,h)=>`${t.name} (#${t.total_rank}) can't catch; C2 filled first`);
   const ssel=rest().filter(h=>elig(h,'SS')); let okg=ssel.filter(h=>h.ss_rf150>=SS_GLOVE_FLOOR); let util_note=`SS-eligible and SS fielding >= ${f0(SS_GLOVE_FLOOR)} runs/150 G`;
   if(!okg.length){ okg=sortBy(ssel,'ss_rf150',false).slice(0,1); util_note='no SS-eligible player meets the glove floor -> best SS glove'; }
-  const okmax=Math.max(...okg.map(h=>h.total)); const failed=ssel.filter(h=>h.ss_rf150<SS_GLOVE_FLOOR&&h.total>okmax);
+  const okmax=okg.length?Math.max(...okg.map(h=>h.total)):-1e9; const failed=ssel.filter(h=>h.ss_rf150<SS_GLOVE_FLOOR&&h.total>okmax);
   take('UTIL-IF',okg,'utility IF (v0.4: '+util_note+')',h=>`${h.pos}; SS fielding ${p1(h.ss_rf150)} runs/150 G at SS (${trunc(h.ss_g)} G); Total ${f1(h.total)}`,
     (t,h)=>failed.map(x=>`${x.name} (#${x.total_rank}, Total ${f1(x.total)}) fails glove check: ${p1(x.ss_rf150)} runs/150 at SS`).join('; ')||`${t.name} (#${t.total_rank}) not SS-eligible`);
   take('OF4',rest().filter(h=>['LF','CF','RF'].some(p=>elig(h,p))),'4th OF',h=>`${h.pos}`,(t,h)=>`${t.name} (#${t.total_rank}) not OF-eligible`);
   const IF=['1B','2B','3B','SS'], OF=['LF','CF','RF'];
   const grp_count=gr=>Object.values(bench).filter(b=>b.name&&gr.some(p=>elig(b,p))).length;
-  const fl=rest().filter(h=>POS.reduce((a,p)=>a+h['g_'+p],0)>0); const top=fl[0]; const band=fl.filter(h=>h.total>=0.85*top.total);
-  const nIF=grp_count(IF), nOF=grp_count(OF); const thin=nOF<nIF?OF:(nIF<nOF?IF:null);
-  const flex_note=`bench before FLEX: ${nIF} IF-capable, ${nOF} OF-capable -> thinnest = ${thin===OF?'OF':thin===IF?'IF':'tie'}`;
-  let pick=top; if(thin){ const b2=band.filter(h=>thin.some(p=>elig(h,p))); pick=b2.length?b2[0]:top; }
-  used.add(pick.name); bench.FLEX=pick;
-  rec('FLEX',pick,`total ${f1(pick.total)} (#${pick.total_rank})`,'PR/defense or extra IF/OF; prefer thinnest group within 15% of best total',`${flex_note}; 15% band: `+band.map(x=>`${x.name} ${f1(x.total)}`).join(', '),
-    pick.name===top.name?null:`${top.name} (#${top.total_rank}, ${f1(top.total)}) is best total but adds to the thicker group`);
+  const fl=rest().filter(h=>POS.reduce((a,p)=>a+h['g_'+p],0)>0);
+  if(!fl.length){ if(THIN) gaps.push('FLEX'); }
+  else {
+    const top=fl[0]; const band=fl.filter(h=>h.total>=0.85*top.total);
+    const nIF=grp_count(IF), nOF=grp_count(OF); const thin=nOF<nIF?OF:(nIF<nOF?IF:null);
+    const flex_note=`bench before FLEX: ${nIF} IF-capable, ${nOF} OF-capable -> thinnest = ${thin===OF?'OF':thin===IF?'IF':'tie'}`;
+    let pick=top; if(thin){ const b2=band.filter(h=>thin.some(p=>elig(h,p))); pick=b2.length?b2[0]:top; }
+    used.add(pick.name); bench.FLEX=pick;
+    rec('FLEX',pick,`total ${f1(pick.total)} (#${pick.total_rank})`,'PR/defense or extra IF/OF; prefer thinnest group within 15% of best total',`${flex_note}; 15% band: `+band.map(x=>`${x.name} ${f1(x.total)}`).join(', '),
+      pick.name===top.name?null:`${top.name} (#${top.total_rank}, ${f1(top.total)}) is best total but adds to the thicker group`);
+  }
   take('BAT',rest().filter(h=>h.PA_bref>=1500),'bench bat: best run producer left (DH-Prod)',h=>`DH-Prod ${f1(h.dhAPEX)} (Hit-APEX ${f1(h.batAPEX)}); ${pyStr(h.rbat600,HF.has('rbat600'))} BatRuns/600; bats ${h.bats}`,(t,h)=>`${t.name} (#${t.total_rank}) higher total but DH-Prod ${f1(t.dhAPEX)} vs ${f1(h.dhAPEX)}`,'dhAPEX');
   // pitchers
-  const PST=pins.staff||{}; const PIN_ROT=Object.keys(PST).filter(n=>PST[n]==='ROT'), PIN_PEN=Object.keys(PST).filter(n=>PST[n]==='PEN');
+  const PST=pins.staff||{}; const _PEN_ROLES=new Set(['CL','SU1','SU2','LHS','LONG','MID1','MID2']);
+  const PIN_ROT=Object.keys(PST).filter(n=>PST[n]==='ROT');
+  const PIN_ROLE=Object.fromEntries(Object.entries(PST).filter(([,v])=>_PEN_ROLES.has(v)));
+  const PIN_PEN=Object.keys(PST).filter(n=>PST[n]==='PEN'||_PEN_ROLES.has(PST[n]));
   const pit_tie_log=[]; let SPP=PX.filter(r=>r.sp_ok);
   const notIn=(a,b)=>{const s=new Set(b.map(r=>r.id)); return a.filter(r=>!s.has(r.id));};
-  function tieCut(sel,pool,key,label){ const last=sortBy(sel,key,true)[0]; const alt=sortBy(notIn(pool,sel),key,false); if(!alt.length) return sel; const a=alt[0];
+  function tieCut(sel,pool,key,label){ if(!sel||!sel.length) return sel||[]; const last=sortBy(sel,key,true)[0]; const alt=sortBy(notIn(pool,sel),key,false); if(!alt.length) return sel; const a=alt[0];
     if(last[key]>0&&a[key]>=(1-PIT_TIE)*last[key]&&a.total>last.total){ pit_tie_log.push(`${label}: ${a.name} (${key} ${f1(a[key])}, Combined ${f1(a.total)}) replaces ${last.name} (${key} ${f1(last[key])}, Combined ${f1(last.total)}); within 2%, higher Combined`);
       return sortBy(sel.filter(r=>r.id!==last.id).concat([a]),key,false); } return sel; }
   let rot;
   if(PIN_ROT.length||PIN_PEN.length){ SPP=SPP.filter(r=>!PIN_ROT.includes(r.name)&&!PIN_PEN.includes(r.name)); const fx=PX.filter(r=>PIN_ROT.includes(r.name)); const nf=5-fx.length;
     rot=sortBy(fx.concat(nf>0?tieCut(sortBy(SPP,'SPx',false).slice(0,nf),SPP,'SPx','SP5'):[]),'SPx',false); }
   else rot=tieCut(sortBy(SPP,'SPx',false).slice(0,5),SPP,'SPx','SP5');
+  if(!rot) rot=[];
+  if(THIN&&rot.length<5) for(let i=rot.length;i<5;i++) gaps.push('SP'+(i+1));
   const rot_log=PIN_ROT.map(n=>`Fan override: ${n} pinned to the rotation`), ROT_OUT=[];
   const pct90=trunc(100*ROT_SWAP_PCT), pct5=trunc(100*HAND_CLOSE);
   function handClose(o,i){ const r=100*i.SPx/o.SPx; if(Math.abs(r-100*ROT_SWAP_PCT)<=CLOSE_PTS){
@@ -166,6 +187,7 @@ function build(team,pins){
     close_calls.push({slot,pick:a.name,alt:b.name,pick_v:pyRound(a[key],1),alt_v:pyRound(b[key],1),pct:pyRound(r,1),rule:`${why}: next ${b.throws}HP ${b.name} is at ${f1(r)}% of ${a.name} (within ${pct5}%)`});
     lg.push(`Close Call: ${why} chose ${a.name} (${f1(a[key])}); next ${b.throws}HP ${b.name} (${f1(b[key])}) is ${f1(r)}% of him (within ${pct5}%)`); } } }
   for(const hm of ['L','R']){
+    if(!rot.length) break;
     while(rot.filter(r=>r.throws===hm).length<ROT_MIN_HAND){
       const maj=sortBy(rot.filter(r=>r.throws!==hm&&!PIN_ROT.includes(r.name)),'SPx',true);
       if(!maj.length){ rot_log.push(`only ${rot.filter(r=>r.throws===hm).length} ${hm}HP; every other starter is pinned -> no swap`); break; }
@@ -201,42 +223,51 @@ function build(team,pins){
     if(p8&&p7.length) close('PEN7',p7[0].name,p7[0].RPx,p8.name,p8.RPx,'RP-APEX, last bullpen spot (W)'); }
   { const a=zs(pen.map(r=>r.RPx)), b=zs(pen.map(r=>r.KBB)), c=zs(pen.map(r=>r.ERAplus)); pen.forEach((r,i)=>{ r.q=0.5*a[i]+0.0*b[i]+0.5*c[i]; if(r.sv_term!==undefined&&r.sv_term!==null) r.q=0.9*r.q+0.1*r.sv_term;   /* v0.9.5: closer save-rate tiebreaker (sv_term from engine_v5.py: regressed franchise save% in 10+ SV seasons since 1969; 0 = no data) */   /* v0.9.4: closer/setup order = 0.5 RP score + 0.5 ERA+ (K/BB dropped; v0.9.3 was 0.4/0.3/0.3), same as engine_v5.py */ }); }
   const roles={}; let o=sortBy(pen,'q',false);
-  /* v0.9.5.1: closer eligibility (cl_ok from engine_v5.py: 1+ franchise season with 10+ SV since 1969 or 40%+ of relief games finished); first eligible in closer order closes */
-  if(o.length&&o[0].cl_ok===false&&o.some(r=>r.cl_ok===true)){ const c=o.find(r=>r.cl_ok===true); pen_log.push(`Closer record rule: ${o[0].name} (closer order #1; ${o[0].cl_seasons} seasons with 10+ saves, ${(100*o[0].gf_share).toFixed(0)}% of relief games finished) has no closer record -> ${c.name} closes (${c.cl_seasons} seasons with 10+ saves, ${(100*c.gf_share).toFixed(0)}% finished)`); o=[c].concat(o.filter(r=>r!==c)); }
-  roles.CL=o[0]; roles.SU1=o[1]; roles.SU2=o[2];
-  let left=pen.filter(r=>![roles.CL,roles.SU1,roles.SU2].some(x=>x.name===r.name));
-  const lhs=sortBy(left.filter(r=>r.lefty),'Kpct',false); if(lhs.length){ roles.LHS=lhs[0]; left=left.filter(r=>r.name!==roles.LHS.name); } else pen_log.push('No LHS role: both bullpen lefties already hold CL/SU1/SU2 (30-team step 2; same as app/engine.js)');
-  roles.LONG=sortBy(left,'ip_per_app',false)[0]; left=left.filter(r=>r.name!==roles.LONG.name);
-  sortBy(left,'RPx',false).forEach((r,k)=>{ roles['MID'+(k+1)]=r; });
+  /* v0.9.5.1: closer eligibility (cl_ok from engine_v5.py: 1+ franchise season with 10+ SV since 1969 or 40%+ of relief games finished); first eligible in closer order closes; skipped when a closer is role-pinned */
+  const clPinned=Object.values(PIN_ROLE).includes('CL');
+  if(!clPinned&&o.length&&o[0].cl_ok===false&&o.some(r=>r.cl_ok===true)){ const c=o.find(r=>r.cl_ok===true); pen_log.push(`Closer record rule: ${o[0].name} (closer order #1; ${o[0].cl_seasons} seasons with 10+ saves, ${(100*o[0].gf_share).toFixed(0)}% of relief games finished) has no closer record -> ${c.name} closes (${c.cl_seasons} seasons with 10+ saves, ${(100*c.gf_share).toFixed(0)}% finished)`); o=[c].concat(o.filter(r=>r!==c)); }
+  // v1.7 pen-role pins
+  const pinnedRoleNames=new Set();
+  for(const [n,slot] of Object.entries(PIN_ROLE)){ const row=pen.find(r=>r.name===n); if(row){ roles[slot]=row; pinnedRoleNames.add(n); pen_log.push(`Fan override: ${n} pinned to ${slot}`); } }
+  let oFree=o.filter(r=>!pinnedRoleNames.has(r.name)); let fi=0;
+  for(const k of ['CL','SU1','SU2']){ if(roles[k]) continue; if(fi<oFree.length){ roles[k]=oFree[fi++]; } }
+  let left=oFree.slice(fi).filter(r=>!pinnedRoleNames.has(r.name));
+  if(!roles.LHS){ const lhs=sortBy(left.filter(r=>r.lefty),'Kpct',false); if(lhs.length){ roles.LHS=lhs[0]; left=left.filter(r=>r.name!==roles.LHS.name); } else pen_log.push('No LHS role: both bullpen lefties already hold CL/SU1/SU2 (30-team step 2; same as app/engine.js)'); }
+  if(!roles.LONG){ const lng=sortBy(left,'ip_per_app',false); if(lng.length){ roles.LONG=lng[0]; left=left.filter(r=>r.name!==roles.LONG.name); } }
+  let midI=1; sortBy(left,'RPx',false).forEach(r=>{ while(roles['MID'+midI]) midI++; roles['MID'+midI]=r; midI++; });
   // lineup
-  const L=POS9.map(p=>Object.assign({},start[p],{slot_pos:p}));
-  { const a=zs(L.map(x=>x.SBrate)), b=zs(L.map(x=>x.rbr600)), c=zs(L.map(x=>x.OBPplus)); L.forEach((x,i)=>{ x.bat=x.rbat600; x.speed=a[i]+b[i]; x.lead=0.7*c[i]+0.3*x.speed; }); }
-  const B=sortBy(L,['bat','OBPplus'],false); const LP={}; for(const [n,k] of Object.entries(pins.lineup||{})) LP[n]=trunc(k);
-  const order=new Array(9).fill(null), notes={};
-  for(const [n,k] of Object.entries(LP)){ order[k-1]=n; notes[k]='Fan override (pinned by Joseph); rules reflow around him'; }
-  const free=k=>order[k-1]===null; const avail=df=>df.filter(x=>!order.includes(x.name));
-  const top4=new Set(B.slice(0,4).map(x=>x.name));
-  if(free(3)){ order[2]=avail(B)[0].name; notes[3]='#3 = best hitter (highest BatRuns/600)'; }
-  let b24=avail(B.filter(x=>top4.has(x.name)));
-  if(free(4)&&b24.length){ order[3]=sortBy(b24,['ISOplus','bat'],false)[0].name; notes[4]='#4 = most power (highest era-adjusted ISO+) among top-4 bats'; }
-  b24=avail(B.filter(x=>top4.has(x.name)));
-  if(free(2)&&b24.length){ order[1]=sortBy(b24,['OBPplus','bat'],false)[0].name; notes[2]='#2 = best OBP+ of the remaining top-4 bats'; }
-  if(free(1)){ let pp=avail(L.filter(x=>!top4.has(x.name)&&x.slot_pos!=='C'&&x.speed>=0)); if(!pp.length) pp=avail(L.filter(x=>!top4.has(x.name)&&x.slot_pos!=='C'));
-    order[0]=sortBy(pp,'lead',false)[0].name; notes[1]='#1 = best 0.7 z(OBP+) + 0.3 speed; not a top-4 bat, not C, speed >= team avg'; }
-  let rem=sortBy(avail(L),['bat','OBPplus'],false);
-  if(free(9)){ const nine=sortBy(rem.slice(-2),'lead',false)[0]; order[8]=nine.name; notes[9]='#9 = second leadoff (better OBP/speed of the two weakest bats)'; rem=rem.filter(x=>x.name!==nine.name); }
-  let first=true; const hasLP=Object.keys(LP).length>0;
-  for(const x of rem){ const k=order.indexOf(null); order[k]=x.name; notes[k+1]=hasLP?'next-best bat (fills first open slot from #5 down; top-4 bats displaced by a pin land here)':(first?'#5 = next-best bat':'#6-8 = descending BatRuns/600'); first=false; }
-  const Li=new Map(L.map(x=>[x.name,x])); const hand=n=>Li.get(n).bats;
-  const run3=o=>{ for(let i=0;i<o.length-2;i++){ const a=[hand(o[i]),hand(o[i+1]),hand(o[i+2])]; if(a[0]===a[1]&&a[1]===a[2]&&a[2]!=='B') return i; } return null; };
-  const hfix=[]; let r=run3(order);
-  while(r!==null&&r>=3){ const i=r+2; let j=null;
-    for(let k=Math.max(i+1,5);k<8;k++){ if(!(order[k] in LP)&&!(order[i] in LP)&&hand(order[k])!==hand(order[i])&&Math.abs(Li.get(order[k]).bat-Li.get(order[i]).bat)<=0.25*Math.abs(Li.get(order[i]).bat)){ j=k; break; } }
-    if(j===null||i<5){ hfix.push(`run at ${r+1}-${r+3} not fixable within rules`); break; }
-    hfix.push(`swap ${order[i]} <-> ${order[j]}`); [order[i],order[j]]=[order[j],order[i]]; r=run3(order); }
-  const lineup=order.map((n,i)=>{ const x=Li.get(n); return {slot:i+1,name:n,pos:x.slot_pos,bats:x.bats,OBP:x.OBP,SLG:x.SLG,OBPplus:trunc(x.OBPplus),ISO:x.ISO,ISOplus:trunc(x.ISOplus),bat600:x.rbat600,SB:trunc(x.SB),note:notes[i+1]}; });
+  const L=POS9.filter(p=>start[p]).map(p=>Object.assign({},start[p],{slot_pos:p}));
+  let lineup=[], hfix=[];
+  if(L.length){
+    { const a=zs(L.map(x=>x.SBrate)), b=zs(L.map(x=>x.rbr600)), c=zs(L.map(x=>x.OBPplus)); L.forEach((x,i)=>{ x.bat=x.rbat600; x.speed=a[i]+b[i]; x.lead=0.7*c[i]+0.3*x.speed; }); }
+    const B=sortBy(L,['bat','OBPplus'],false); const LP={}; for(const [n,k] of Object.entries(pins.lineup||{})) LP[n]=trunc(k);
+    const order=new Array(L.length).fill(null), notes={};
+    for(const [n,k] of Object.entries(LP)){ if(k>=1&&k<=L.length){ order[k-1]=n; notes[k]='Fan override (pinned by Joseph); rules reflow around him'; } }
+    const free=k=>order[k-1]===null; const avail=df=>df.filter(x=>!order.includes(x.name));
+    const top4=new Set(B.slice(0,Math.min(4,B.length)).map(x=>x.name));
+    if(free(3)&&avail(B)[0]){ order[2]=avail(B)[0].name; notes[3]='#3 = best hitter (highest BatRuns/600)'; }
+    let b24=avail(B.filter(x=>top4.has(x.name)));
+    if(free(4)&&b24.length){ order[3]=sortBy(b24,['ISOplus','bat'],false)[0].name; notes[4]='#4 = most power (highest era-adjusted ISO+) among top-4 bats'; }
+    b24=avail(B.filter(x=>top4.has(x.name)));
+    if(free(2)&&b24.length){ order[1]=sortBy(b24,['OBPplus','bat'],false)[0].name; notes[2]='#2 = best OBP+ of the remaining top-4 bats'; }
+    if(free(1)){ let pp=avail(L.filter(x=>!top4.has(x.name)&&x.slot_pos!=='C'&&x.speed>=0)); if(!pp.length) pp=avail(L.filter(x=>!top4.has(x.name)&&x.slot_pos!=='C'));
+      if(pp.length){ order[0]=sortBy(pp,'lead',false)[0].name; notes[1]='#1 = best 0.7 z(OBP+) + 0.3 speed; not a top-4 bat, not C, speed >= team avg'; } }
+    let rem=sortBy(avail(L),['bat','OBPplus'],false);
+    if(free(L.length)&&rem.length>=2){ const nine=sortBy(rem.slice(-2),'lead',false)[0]; order[L.length-1]=nine.name; notes[L.length]='#9 = second leadoff (better OBP/speed of the two weakest bats)'; rem=rem.filter(x=>x.name!==nine.name); }
+    let first=true; const hasLP=Object.keys(LP).length>0;
+    for(const x of rem){ const k=order.indexOf(null); if(k<0) break; order[k]=x.name; notes[k+1]=hasLP?'next-best bat (fills first open slot from #5 down; top-4 bats displaced by a pin land here)':(first?'#5 = next-best bat':'#6-8 = descending BatRuns/600'); first=false; }
+    const Li=new Map(L.map(x=>[x.name,x])); const hand=n=>Li.get(n)&&Li.get(n).bats;
+    const run3=o=>{ if(o.some(x=>!x)) return null; for(let i=0;i<o.length-2;i++){ const a=[hand(o[i]),hand(o[i+1]),hand(o[i+2])]; if(a[0]===a[1]&&a[1]===a[2]&&a[2]!=='B') return i; } return null; };
+    let r=run3(order);
+    while(r!==null&&r>=3){ const i=r+2; let j=null;
+      for(let k=Math.max(i+1,5);k<Math.min(8,order.length);k++){ if(!(order[k] in LP)&&!(order[i] in LP)&&hand(order[k])!==hand(order[i])&&Math.abs(Li.get(order[k]).bat-Li.get(order[i]).bat)<=0.25*Math.abs(Li.get(order[i]).bat)){ j=k; break; } }
+      if(j===null||i<5){ hfix.push(`run at ${r+1}-${r+3} not fixable within rules`); break; }
+      hfix.push(`swap ${order[i]} <-> ${order[j]}`); [order[i],order[j]]=[order[j],order[i]]; r=run3(order); }
+    lineup=order.filter(Boolean).map((n,i)=>{ const x=Li.get(n); return {slot:i+1,name:n,pos:x.slot_pos,bats:x.bats,OBP:x.OBP,SLG:x.SLG,OBPplus:trunc(x.OBPplus),ISO:x.ISO,ISOplus:trunc(x.ISOplus),bat600:x.rbat600,SB:trunc(x.SB),note:notes[i+1]||''}; });
+  }
   const r3=x=>npRound(x,3);
-  const out={start:Object.fromEntries(POS9.map(p=>[p,start[p].name])),bench:Object.fromEntries(Object.entries(bench).map(([k,v])=>[k,v.name])),
+  if(THIN){ for(const k of ['CL','SU1','SU2','LHS','LONG','MID1','MID2']) if(!roles[k]) gaps.push(k); }
+  const out={start:Object.fromEntries(POS9.filter(p=>start[p]).map(p=>[p,start[p].name])),bench:Object.fromEntries(Object.entries(bench).map(([k,v])=>[k,v.name])),
     rotation:Object.fromEntries(rot.map((x,i)=>['SP'+(i+1),x.name])),pen:Object.fromEntries(Object.entries(roles).map(([k,v])=>[k,v.name])),lineup,log,hfix,dh_table,
     pen_q:pen.map(x=>({name:x.name,throws:x.throws,RPx:r3(x.RPx),total:r3(x.total),KBB:r3(x.KBB),ERAplus:r3(x.ERAplus),SV:r3(x.SV),q:r3(x.q),ip_per_app:r3(x.ip_per_app),...(x.sv_term!==undefined&&x.sv_term!==null?{sv_term:r3(x.sv_term),sv_SV:r3(x.sv_SV),sv_BS:r3(x.sv_BS)}:{})})),
     rot_scores:rot.map(x=>({name:x.name,SPx:r1(x.SPx),total:r1(x.total)}))};
@@ -245,6 +276,7 @@ function build(team,pins){
   Object.assign(out,{pit_tie_log,tie_log,close_calls,guard_log,dh_rule_log:dhrule_log,dh_swap:dhswap,team_runs:TEAM_RUNS,rot_log,pen_log,pins,
     util_failed:failed.map(x=>({name:x.name,total:pyRound(x.total,1),ss_rf150:pyRound(x.ss_rf150,1)}))});
   out._objs={start,bench,rot,pen,roles};  // full rows for the UI (not part of the Python output)
+  if(THIN&&gaps.length){ out.gaps=gaps; out.thin=true; }
   return out;
 }
 // ---------- Big Moments option (app v1.1, not default) ----------
