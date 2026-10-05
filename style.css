@@ -1,0 +1,90 @@
+:root{--ink:#1d232b;--paper:#f6f1e4;--card:#fffdf7;--line:#d9cfb6;--muted:#6b6455;--grass:#2f6b3a;--dirt:#b9804a;--t1:#1b2a41;--t2:#c8102e;--warn:#b45309;--ok:#1f7a3a;--pin:#7c3aed}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--t1)}
+header#top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 14px;background:var(--t1);color:#fff;border-bottom:4px solid var(--t2)}
+.brand a{display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none}
+.ball{width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:inset 4px 0 0 -2px #c8102e,inset -4px 0 0 -2px #c8102e;display:inline-block}
+.bt{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:20px;letter-spacing:.3px}
+.bs{font-size:12px;text-transform:uppercase;letter-spacing:2px;opacity:.8}
+nav#teams{display:flex;gap:6px;flex-wrap:wrap}
+nav#teams a{color:#fff;text-decoration:none;padding:5px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.35);font-weight:600;font-size:14px}
+nav#teams a.on{background:#fff;color:var(--t1)}
+.ver{margin-left:auto;font-size:12px;background:rgba(255,255,255,.12);padding:3px 8px;border-radius:6px;white-space:nowrap}
+#subnav{display:flex;gap:4px;flex-wrap:wrap;padding:8px 14px 0;max-width:1180px;margin:0 auto}
+#subnav a{padding:6px 12px;border-radius:8px 8px 0 0;text-decoration:none;font-weight:600;font-size:14px;color:var(--muted);border:1px solid transparent;border-bottom:none}
+#subnav a.on{background:var(--card);color:var(--ink);border-color:var(--line)}
+main{max-width:1180px;margin:0 auto;padding:0 14px 30px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:0 10px 10px 10px;padding:14px}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:.2em 0 .4em}
+h1{font-size:26px}h2{font-size:20px;border-bottom:2px solid var(--line);padding-bottom:3px;margin-top:18px}h3{font-size:16px}
+.teamhead{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.teamhead .meta{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:5px 6px;border-bottom:1px solid #ece4cf;text-align:left;vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#f3ecda;position:sticky;top:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer}tr.click:hover td{background:#fbf3dc}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.lineup td.slot{font-family:Georgia,serif;font-weight:700;font-size:18px;width:28px;color:var(--t2)}
+.pos{display:inline-block;min-width:34px;text-align:center;font-weight:700;font-size:12px;padding:1px 5px;border-radius:5px;background:var(--t1);color:#fff}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px;vertical-align:1px;white-space:nowrap}
+.tag.cc{background:#fde7c7;color:#8a4b00;border:1px solid #f5c58a}
+.tag.pin{background:#ede4ff;color:var(--pin);border:1px solid #cdb8ff}
+.tag.ov{background:#e6f0ff;color:#1e4fa3;border:1px solid #b9d0f7}
+.tag.conf{background:#eef5ea;color:#2f5e2a;border:1px solid #c9dfc0}
+.tag.confD,.tag.confC{background:#fbefe6;color:#8a3d0b;border-color:#efc9ad}
+.muted{color:var(--muted)}.small{font-size:12.5px}
+.name{font-weight:600;color:var(--ink);text-decoration:none;border-bottom:1px dotted #a99d80}
+.field{position:relative;width:100%;max-width:520px;aspect-ratio:1/0.86;margin:0 auto 6px}
+.field svg{position:absolute;inset:0;width:100%;height:100%}
+.fp{position:absolute;transform:translate(-50%,-50%);text-align:center;font-size:12px;line-height:1.15;background:rgba(255,253,247,.94);border:1px solid var(--line);border-radius:7px;padding:3px 6px;cursor:pointer;max-width:120px;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.fp b{display:block;font-size:10px;color:var(--t2);letter-spacing:.5px}
+.banner{border:1px solid #cdb8ff;background:#f6f1ff;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:14px}
+.banner.ok{border-color:#b7dcc0;background:#effaf1}
+.banner.bad{border-color:#f0b4b4;background:#fff1f1}
+.btn{font:inherit;font-size:13px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+.btn:hover{background:#fbf3dc}.btn.p{background:var(--t1);color:#fff;border-color:var(--t1)}
+select,input[type=search]{font:inherit;font-size:14px;padding:5px 8px;border-radius:7px;border:1px solid var(--line);background:#fff}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+.scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:8px}
+.modal{position:fixed;inset:0;background:rgba(20,20,20,.5);z-index:50;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:20px 10px}
+.modal[hidden]{display:none}
+.sheet{background:var(--card);border-radius:12px;max-width:820px;width:100%;padding:16px 16px 20px;position:relative;border-top:6px solid var(--t2)}
+.x{position:absolute;right:10px;top:6px;border:none;background:none;font-size:28px;cursor:pointer;color:var(--muted)}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin:6px 0 10px}
+.kv div{background:#f7f0dd;border-radius:8px;padding:6px 8px}.kv b{display:block;font-size:18px;font-family:Georgia,serif}.kv span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.receipt{border-left:4px solid var(--t1);background:#faf6ea;padding:8px 10px;border-radius:0 8px 8px 0;margin:6px 0;font-size:13.5px}
+.receipt p{margin:3px 0}
+.rules{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;background:#fffdf7;border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto}
+.rules .h{font-family:Georgia,serif;font-weight:700;font-size:16px;color:var(--t1)}
+.rules .new{background:#fff3c4}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#f3ecda;font-size:12px;margin:2px}
+footer{max-width:1180px;margin:0 auto;padding:10px 14px 40px;color:var(--muted);font-size:12px}
+.homegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:10px}
+.teamcard{display:block;text-decoration:none;color:#fff;border-radius:12px;padding:16px;min-height:120px;position:relative;overflow:hidden}
+.teamcard h2{border:none;color:#fff;margin:0 0 6px;font-size:22px}.teamcard p{margin:2px 0;font-size:13px;opacity:.9}
+@media (max-width:560px){
+  body{font-size:14px} h1{font-size:21px} .bt{font-size:17px} .bs{display:none} .ver{margin-left:0}
+  header#top{gap:8px;padding:7px 10px} nav#teams a{padding:4px 9px;font-size:13px}
+  main{padding:0 8px 24px} #subnav{padding:6px 8px 0} #subnav a{padding:6px 8px;font-size:13px}
+  .panel{padding:10px} th,td{padding:4px 4px} .hide-s{display:none}
+  .fp{font-size:10.5px;max-width:86px;padding:2px 4px}
+}
+/* app v1.1 Big Moments */
+.tag.oct{background:#fff1d6;color:#8a4b00;border:1px solid #f0b54a}
+.tag.clutch{background:#e3f1ff;color:#0b4f8a;border:1px solid #7fb6e8}
+.tag.big{font-size:13px;padding:3px 9px}
+.badges{margin:-4px 0 8px}
+.bmswitch{margin:8px 0;padding:8px 10px;border:1px dashed #c9a24a;border-radius:8px;background:#fffaf0}
+.bmlabel{padding:3px 8px;border:1px solid #c9a24a;border-radius:6px;background:#fffaf0}
+.banner.bm{background:#fff6e5;border-color:#f0b54a}
+.bmkv b{font-size:17px}
+.bmtext p{line-height:1.45}
+/* app v1.3: 30-team picker, league/division groups, thin-pool tag */
+#teampick{font:inherit;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.4);background:#fff;color:#1b2a41;margin:0 6px;max-width:240px}
+h2.grp{font-size:16px;margin:18px 0 0;border:none}
+.tag.thin{background:#fff3cd;color:#7a5a00;border:1px solid #f0d27a}
+.teamcard .tag.thin{margin-left:0}
