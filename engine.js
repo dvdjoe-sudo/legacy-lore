@@ -6,7 +6,7 @@
 'use strict';
 const POS=['C','1B','2B','3B','SS','LF','CF','RF'], POS9=POS.concat(['DH']), FAMS=['C','1B','2B','3B','SS','LF','CF'];
 const POSADJ={C:12.5,'1B':-12.5,'2B':2.5,'3B':2.5,SS:7.5,LF:-7.5,CF:2.5,RF:-7.5,DH:-17.5};
-const SS_GLOVE_FLOOR=-5.0, ROT_MIN_HAND=1, ROT_SWAP_PCT=0.90, PEN_MIN_LHP=1, CLOSE_PCT=0.02, CLOSE_PTS=2.0, SP_MIN_GS=30, RP_MIN_G=100, PIT_TIE=0.02, HAND_CLOSE=0.05; /* v0.9.7: min 1 of each hand in rotation; 1 LHS in pen; no long-man force-in */
+const SS_GLOVE_FLOOR=-5.0, ROT_MIN_HAND=1, ROT_SWAP_PCT=0.90, PEN_MIN_LHP=1, CLOSE_PCT=0.02, CLOSE_PTS=2.0, SP_MIN_GS=30, RP_MIN_G=100, PIT_TIE=0.02, HAND_CLOSE=0.05; /* v0.9.8: min 1 of each hand in rotation; 1 dedicated LHS in pen (closer does not count); no long-man force-in */
 // ---------- Python-exact number formatting ----------
 function exactDec(x){ // exact decimal expansion of a finite double: {neg, int:'digits', frac:'digits'}
   const buf=new DataView(new ArrayBuffer(8)); buf.setFloat64(0,x);
@@ -206,20 +206,34 @@ function build(team,pins){
     pen=fx.concat(nf>0?tieCut(sortBy(RPP,'RPx',false).slice(0,nf),RPP,'RPx','PEN7'):[]); }
   else pen=tieCut(sortBy(RPP,'RPx',false).slice(0,7),RPP,'RPx','PEN7');
   const deco=r=>Object.assign({},r,{lefty:r.throws==='L',ip_per_app:r.IP/r.G,long:(r.IP/r.G>=1.5)||(r.GS>=20)});
-  pen=pen.map(deco); const pen_log=PIN_PEN.map(n=>`Fan override: ${n} pinned to the bullpen`);
+  pen=pen.map(deco); const pen_log=PIN_PEN.map(n=>`Fan override: ${n} pinned to the bullpen`); /* v0.9.8: dedicated LHS (closer does not count toward PEN_MIN_LHP); long man is role label only */
   let _rest=notIn(RPP,pen).map(deco);
-  while(pen.filter(r=>r.lefty).length<PEN_MIN_LHP){
-    const c=sortBy(_rest.filter(r=>r.lefty),'RPx',false); if(!c.length){ pen_log.push(`fewer than ${PEN_MIN_LHP} LHP available`); break; }
-    const _o=sortBy(pen.filter(r=>!r.lefty&&!PIN_PEN.includes(r.name)),'RPx',true); if(!_o.length){ pen_log.push(`fewer than ${PEN_MIN_LHP} LHP: every righty in the pen is pinned`); break; }
+  const applyPenQ=rows=>{ const a=zs(rows.map(r=>r.RPx)), b=zs(rows.map(r=>r.KBB)), c=zs(rows.map(r=>r.ERAplus)); rows.forEach((r,i)=>{ r.q=0.5*a[i]+0.0*b[i]+0.5*c[i]; if(r.sv_term!==undefined&&r.sv_term!==null) r.q=0.9*r.q+0.1*r.sv_term; }); }; /* v0.9.5 save-rate + v0.9.4 closer order */
+  // v0.9.8 dedicated LHS seat: need >=PEN_MIN_LHP LHP who is NOT the closer
+  while(true){
+    applyPenQ(pen);
+    let oo=sortBy(pen,'q',false);
+    const clPinned0=Object.values(PIN_ROLE).includes('CL');
+    let clName=null;
+    const pinCL=Object.entries(PIN_ROLE).find(([n,s])=>s==='CL'&&pen.some(r=>r.name===n));
+    if(pinCL) clName=pinCL[0];
+    else if(oo.length){
+      if(!clPinned0&&oo[0].cl_ok===false&&oo.some(r=>r.cl_ok===true)) clName=oo.find(r=>r.cl_ok===true).name;
+      else clName=oo[0].name;
+    }
+    if(!clName) break;
+    if(pen.filter(r=>r.lefty&&r.name!==clName).length>=PEN_MIN_LHP) break;
+    const c=sortBy(_rest.filter(r=>r.lefty),'RPx',false); if(!c.length){ pen_log.push(`fewer than ${PEN_MIN_LHP} dedicated LHS available (closer does not count)`); break; }
+    const _o=sortBy(pen.filter(r=>!r.lefty&&!PIN_PEN.includes(r.name)&&r.name!==clName),'RPx',true); if(!_o.length){ pen_log.push(`fewer than ${PEN_MIN_LHP} dedicated LHS: every non-closer righty is pinned`); break; }
     const o_=_o[0], i_=c[0];
-    pen_log.push(`Pen balance: ${i_.name} (L, RP-APEX ${f1(i_.RPx)}) replaces ${o_.name} (${o_.throws}, ${f1(o_.RPx)}) to reach ${PEN_MIN_LHP} LHP`);
+    pen_log.push(`Pen balance: ${i_.name} (L, RP-APEX ${f1(i_.RPx)}) replaces ${o_.name} (${o_.throws}, ${f1(o_.RPx)}) for dedicated LHS (closer does not count)`);
     handPickClose(c,'RPx','PEN (lefty pick)',pen_log,'bullpen lefty fallback');
     pen=pen.filter(r=>r.id!==o_.id).concat([i_]); _rest=_rest.filter(r=>r.id!==i_.id);
   }
   // v0.9.7: do not force a long man / emergency SP6 into the pen; LONG remains a role label among whoever is already in (highest IP/G).
   { const p7=sortBy(pen.filter(r=>!PIN_PEN.includes(r.name)),'RPx',true); const p8=_rest.length?sortBy(_rest,'RPx',false)[0]:null;
     if(p8&&p7.length) close('PEN7',p7[0].name,p7[0].RPx,p8.name,p8.RPx,'RP-APEX, last bullpen spot (W)'); }
-  { const a=zs(pen.map(r=>r.RPx)), b=zs(pen.map(r=>r.KBB)), c=zs(pen.map(r=>r.ERAplus)); pen.forEach((r,i)=>{ r.q=0.5*a[i]+0.0*b[i]+0.5*c[i]; if(r.sv_term!==undefined&&r.sv_term!==null) r.q=0.9*r.q+0.1*r.sv_term;   /* v0.9.5: closer save-rate tiebreaker (sv_term from engine_v5.py: regressed franchise save% in 10+ SV seasons since 1969; 0 = no data) */   /* v0.9.4: closer/setup order = 0.5 RP score + 0.5 ERA+ (K/BB dropped; v0.9.3 was 0.4/0.3/0.3), same as engine_v5.py */ }); }
+  applyPenQ(pen);
   const roles={}; let o=sortBy(pen,'q',false);
   /* v0.9.5.1: closer eligibility (cl_ok from engine_v5.py: 1+ franchise season with 10+ SV since 1969 or 40%+ of relief games finished); first eligible in closer order closes; skipped when a closer is role-pinned */
   const clPinned=Object.values(PIN_ROLE).includes('CL');
