@@ -5,7 +5,7 @@ Baseball-Reference / Retrosheet-based value scores. Runs entirely in the browser
 
 - **Live app:** https://dvdjoe-sudo.github.io/legacy-lore/
 - **Rules page (how players are scored and picked):** https://dvdjoe-sudo.github.io/legacy-lore/#/rules
-- **App version:** v1.8 · **Engine version:** v0.9.8
+- **App version:** v1.9 · **Engine version:** v0.9.8
 - **Offline single-file version:** [download/legacy_lore.html](download/legacy_lore.html) (open it in Safari or Chrome; works with no connection)
 
 Team pages: `#/<team>` (e.g. [#/mets](https://dvdjoe-sudo.github.io/legacy-lore/#/mets), [#/yankees](https://dvdjoe-sudo.github.io/legacy-lore/#/yankees)).

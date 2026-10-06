@@ -1,8 +1,12 @@
-/* Legacy Lore Clubhouse v1.8 (engine v0.9.8): History / Almanac / Lore tabs next to the roster build (lore.js, data/lore/*.js), cross-linked with player cards. v1.7 (city split + tap-to-swap + pen-role pins; engine v0.9.8 dedicated LHS (closer does not count)) (v1.6: Total Zone by position for all 30 franchises 1953-2015; v1.5.1: closer record rule 22a; v1.5: engine v0.9.5 Baseball-Reference match fixes, save-rate tiebreaker for closer order, Jr. names; v1.4: relief innings 100% runs allowed, closer order on Reliever score + ERA+, Big Moments Shutdown score for relief; v1.3.1: packed data, each team decoded on demand by loader.js; same UI and numbers as v1.3): all 30 franchises with a team picker (v1.2: engine v0.9.3; v1.1 added the Big Moments option: October + Clutch bonuses, OFF by default). All numbers come from LL_DATA (exported from the engine files by export_app_data.py)
+/* Legacy Lore Clubhouse v1.9 (engine v0.9.8): Compare mode (#/<team>/compare: app default 26 vs your build, divergence flags; compare.js), "What changed" note (data/changes.js from tools/make_changes.py), fan-pin receipts say "pinned by you", Story Bible 26 stays in the Lore tab only. v1.8: History / Almanac / Lore tabs next to the roster build (lore.js, data/lore/*.js), cross-linked with player cards. v1.7 (city split + tap-to-swap + pen-role pins; engine v0.9.8 dedicated LHS (closer does not count)) (v1.6: Total Zone by position for all 30 franchises 1953-2015; v1.5.1: closer record rule 22a; v1.5: engine v0.9.5 Baseball-Reference match fixes, save-rate tiebreaker for closer order, Jr. names; v1.4: relief innings 100% runs allowed, closer order on Reliever score + ERA+, Big Moments Shutdown score for relief; v1.3.1: packed data, each team decoded on demand by loader.js; same UI and numbers as v1.3): all 30 franchises with a team picker (v1.2: engine v0.9.3; v1.1 added the Big Moments option: October + Clutch bonuses, OFF by default). All numbers come from LL_DATA (exported from the engine files by export_app_data.py)
    or from LLEngine.build (the JS port of engine_v5.py, verified equal to Python). */
 (function(){
 'use strict';
 const D=window.LL_DATA, E=window.LLEngine, $=s=>document.querySelector(s);
+const APP_UI='v1.9';   // app UI version (data/app_version from export_app_data.py stays as exported)
+const CMP=window.LLCompare, CHG=window.LL_CHANGES||null;
+// v1.9: the engine writes "pinned by Joseph" into fan-override receipts (kept for JS == Python parity); the UI shows it neutrally for every user
+const neutral=s=>String(s==null?'':s).replace(/pinned by Joseph/g,'pinned by you');
 const POS=E.POS, POS9=E.POS9, f1=x=>E.fmt(x,1), f0=x=>E.fmt(x,0), p1=x=>E.fmt(x,1,true), f3=x=>E.fmt(x,3);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>v===null||v===undefined||Number.isNaN(v)?null:v;
@@ -101,8 +105,8 @@ const lum=h=>{ const v=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255); return 0
 const shade=h=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.slice(i,i+2),16)*0.6).toString(16).padStart(2,'0')).join('');
 function nav(view){ const k=CUR&&CUR.t.key;
   $('#teams').innerHTML=`<a href="#/" class="${view==='home'?'on':''}">All teams</a><select id="teampick" aria-label="Pick a team"><option value="">${k?'':'Pick a team…'}</option>${GROUPS.map(([lg,dv])=>`<optgroup label="${lg} ${dv}">${byGroup(lg,dv).map(t=>`<option value="${t.key}" ${k===t.key?'selected':''}>${esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select>`+`<a href="#/history" class="${view==='league'?'on':''}">History</a><a href="#/rules" class="${view==='rules'?'on':''}">Rules</a><a href="#/about" class="${view==='about'?'on':''}">About</a>`;
-  $('#ver').textContent='Engine '+engLabel();
-  $('#subnav').innerHTML=(k&&['club','hit','pit','history','almanac','lore'].includes(view))?[['club','Clubhouse',''],['hit','Hitters','/hitters'],['pit','Pitchers','/pitchers'],['history','History','/history'],['almanac','Almanac','/almanac'],['lore','Lore','/lore']].map(([v,l,s])=>`<a href="#/${k}${s}" class="${v===view?'on':''}${['history','almanac','lore'].includes(v)?' lt':''}">${l}</a>`).join(''):'';
+  $('#ver').innerHTML=`Engine ${esc(engLabel())}${CHG?` · <a href="javascript:void 0" data-act="changes" class="chglink">What changed</a>`:''}`;
+  $('#subnav').innerHTML=(k&&['club','cmp','hit','pit','history','almanac','lore'].includes(view))?[['club','Clubhouse',''],['cmp','Compare','/compare'],['hit','Hitters','/hitters'],['pit','Pitchers','/pitchers'],['history','History','/history'],['almanac','Almanac','/almanac'],['lore','Lore','/lore']].map(([v,l,s])=>`<a href="#/${k}${s}" class="${v===view?'on':''}${['history','almanac','lore'].includes(v)?' lt':''}">${l}</a>`).join(''):'';
   if(k){ document.documentElement.style.setProperty('--t1',CUR.t.colors[0]); document.documentElement.style.setProperty('--t2',lum(CUR.t.colors[1])>0.55?(CUR.t.colors[1]==='#C4CED3'?'#8c99a6':shade(CUR.t.colors[1])):CUR.t.colors[1]); }
   else { document.documentElement.style.setProperty('--t1','#1b2a41'); document.documentElement.style.setProperty('--t2','#c8102e'); }
 }
@@ -126,7 +130,7 @@ function pinBanner(){ const p=CUR.pins; const n=pinCount(p); const dr=CUR.droppe
   const base=E.build(CUR.t,{}); const dv=CUR.o.team_runs-base.team_runs;
   return `<div class="banner"><b>Fan override active</b> (${n}): ${items.map(x=>`<span class="pill">${x}</span>`).join(' ')}<br>
    Nine-starter value ${f1(CUR.o.team_runs)} W vs engine pick ${f1(base.team_runs)} W (${p1(dv)} W). Everything else rebuilt around the pins.
-   <div class="tools" style="margin:6px 0 0"><button class="btn" data-act="clear">Clear all pins</button><button class="btn" data-act="pinsjson">Show pins file (for engine_v5.py)</button></div>${dr}</div>`; }
+   <div class="tools" style="margin:6px 0 0"><a class="btn p" href="#/${CUR.t0.key}/compare">Compare with the app's 26</a><button class="btn" data-act="clear">Clear all pins</button><button class="btn" data-act="pinsjson">Show pins file (for engine_v5.py)</button></div>${dr}</div>`; }
 const POSXY={C:[50,90],'1B':[77,64],'2B':[64,43],'3B':[23,64],SS:[36,43],LF:[17,24],CF:[50,12],RF:[83,24],DH:[86,90]};
 function field(){ const o=CUR.o;
   return `<div class="field"><svg viewBox="0 0 100 86" preserveAspectRatio="none" aria-hidden="true"><path d="M50 84 L2 36 Q50 -14 98 36 Z" fill="#3d7f46"/><path d="M50 80 L28 58 L50 36 L72 58 Z" fill="#c99a63"/><path d="M50 74 L34 58 L50 42 L66 58 Z" fill="#3d7f46"/><circle cx="50" cy="58" r="3" fill="#c99a63"/></svg>
@@ -138,9 +142,9 @@ function gapsBanner(){ const g=CUR.o.gaps; if(!g||!g.length) return ''; return `
 function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; const ob=o._objs;
   const logBy=s=>o.log.find(l=>l.slot===s);
   const lineup=o.lineup.map(l=>{ const h=hitter(l.name); const lg=logBy(l.pos);
-    return `<tr class="click" data-card="h" data-n="${esc(l.name)}"><td class="slot">${l.slot}</td><td><span class="pos">${l.pos}</span> <span class="name">${esc(l.name)}</span> <span class="muted small">${esc(l.bats)}</span>${pinTag(l.name)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(l.note)}</div></td>
+    return `<tr class="click" data-card="h" data-n="${esc(l.name)}"><td class="slot">${l.slot}</td><td><span class="pos">${l.pos}</span> <span class="name">${esc(l.name)}</span> <span class="muted small">${esc(l.bats)}</span>${pinTag(l.name)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(neutral(l.note))}</div></td>
      <td class="n">${obp(l.OBP)}</td><td class="n hide-s">${obp(l.SLG)}</td><td class="n hide-s">${l.OBPplus}</td><td class="n hide-s">${l.ISOplus}</td><td class="n">${fx(l.bat600)}</td><td class="n">${f1(h['v_'+l.pos])}</td></tr>`;}).join('');
-  const benchRows=Object.entries(o.bench).map(([s,n])=>{ const h=hitter(n); const lg=logBy(s); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="h" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(h.pos)}</span>${pinTag(n)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(lg?lg.fit:'')}</div></td><td class="n">${f1(h.total)}</td><td class="n hide-s">#${h.total_rank}</td></tr>`;}).join('');
+  const benchRows=Object.entries(o.bench).map(([s,n])=>{ const h=hitter(n); const lg=logBy(s); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="h" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(h.pos)}</span>${pinTag(n)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(lg?neutral(lg.fit):'')}</div></td><td class="n">${f1(h.total)}</td><td class="n hide-s">#${h.total_rank}</td></tr>`;}).join('');
   const rotRows=Object.entries(o.rotation).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.SPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${Math.round(p.IP)}</td></tr>`;}).join('');
   const penRows=Object.entries(o.pen).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.RPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.KBB,2)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${p.SV}</td></tr>`;}).join('');
   const cc=o.close_calls.length?o.close_calls.map(c=>`<li><b>${esc(c.slot)}</b>: ${nm(c.pick,hitter(c.pick)?'h':'p')} ${c.pick_v} vs ${nm(c.alt,hitter(c.alt)?'h':'p')} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</li>`).join(''):'<li class="muted">No Close Calls on this roster.</li>';
@@ -163,6 +167,46 @@ function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; c
    <div class="grid"><div class="card"><h3>Notable omissions: hitters</h3><table><thead><tr><th>Player</th><th class="n">Total</th><th>Why not</th></tr></thead><tbody>${omitH}</tbody></table><p class="small muted">Top Total APEX hitters not on the 26. "Best start" = his highest value at a position he may start; bench slots follow the rule order C2 → UTIL-IF → OF4 → FLEX → BAT.</p></div>
    <div class="card"><h3>Notable omissions: pitchers</h3><table><thead><tr><th>Pitcher</th><th class="n">Comb.</th><th>Scores</th></tr></thead><tbody>${omitP}</tbody></table></div></div>
    </div>`; }
+// ---------- v1.9 Compare: the app's default 26 vs your build (compare.js does the math; nothing from the Story Bible / Lore is read here) ----------
+let CMP_ONLY=false;
+function compareFor(){ const t0=CUR.t0, base=E.build(t0,{}); return Object.assign(CMP.compare(t0,base,CUR.o,CUR.pins),{base}); }
+const wgap=g=>g===null||g===undefined?'':`${g>=0?'+':'−'}${f1(Math.abs(g))} W`;
+function buildReasons(){ const r=[]; if(CUR.city) r.push(`${esc(CUR.city.city)} only (${CUR.city.years[0]}–${CUR.city.years[1]})`);
+  const n=pinCount(CUR.pins); if(n) r.push(`${n} pin${n===1?'':'s'} / swap${n===1?'':'s'}`); if(BMON) r.push('Big Moments ON'); return r; }
+function vCompare(k){ compute(k); nav('cmp'); const t=CUR.t, t0=CUR.t0; const C=compareFor();
+  const nmx=n=>n?(hitter(n)||pitcher(n)?nm(n,hitter(n)?'h':'p'):`<span class="name">${esc(n)}</span>`):'<span class="muted">(empty)</span>';
+  const why=buildReasons();
+  const flags=C.diffs.map(r=>{ const gap=r.gap===null?'':`<span class="tag ${r.gap<0?'cost':'ok'}">${wgap(r.gap)}${r.pct!==null?` · ${f1(r.pct)}%`:''}</span>`;
+    const notes=[]; if(r.cc!==null) notes.push(`<span class="tag cc">Close Call ${f1(r.cc)}%</span>`); if(r.pinned) notes.push('<span class="tag pin">your pin</span>');
+    if(r.app) notes.push(`<span class="small muted">${esc(r.app)}: ${r.appNow?'now your '+esc(r.appNow):'off your 26'}</span>`);
+    return `<li class="dv"><div class="dvh"><span class="pos">${esc(r.slot)}</span> <span class="small muted">App</span> ${nmx(r.app)}${r.av!==null?` <span class="small muted">${f1(r.av)}</span>`:''} <span class="arrow">→</span> <span class="small muted">You</span> ${nmx(r.mine)}${r.bv!==null?` <span class="small muted">${f1(r.bv)}</span>`:''} ${gap}</div>${notes.length?`<div class="dvn">${notes.join(' ')}</div>`:''}</li>`; }).join('');
+  let body='', last='';
+  for(const r of C.rows){ if(CMP_ONLY&&!r.diff) continue;
+    if(r.label!==last){ body+=`<tr class="sec"><td colspan="3">${esc(r.label)}</td></tr>`; last=r.label; }
+    body+=`<tr class="${r.diff?'diff':'same'}" data-slot="${esc(r.slot)}"><td class="cs"><span class="pos">${esc(r.slot)}</span></td><td class="ca">${nmx(r.app)}${r.av!==null?`<div class="small muted">${f1(r.av)}</div>`:''}</td><td class="cm">${nmx(r.mine)}${r.pinned?'<span class="tag pin">pin</span>':''}<div class="small muted">${r.bv!==null?f1(r.bv):''}${r.diff&&r.gap!==null?` · ${wgap(r.gap)}`:''}</div></td></tr>`; }
+  if(!body) body='<tr><td colspan="3" class="muted">No differences to show.</td></tr>';
+  const dn=C.nine_mine-C.nine_app;
+  return `<div class="panel cmpview"><div class="teamhead"><div><h1>${esc(t0.name)} Compare</h1><div class="meta">App default: full franchise, no pins, engine ${esc(D.version)} (Big Moments off) · Your build: ${why.length?why.join(' · '):'no changes'}</div></div>
+    <div class="tools">${cityPicker(t0)}<a class="btn" href="#/${t0.key}">Back to Clubhouse</a></div></div>
+    <div class="cmpsum"><div class="${C.n?'hot':''}"><b>${C.n}</b><span>of ${C.slots} slots differ</span></div><div><b>${C.added.length}</b><span>player${C.added.length===1?'':'s'} not on the app's 26</span></div><div><b>${wgap(dn)||'0.0 W'}</b><span>nine-starter value (${f1(C.nine_mine)} vs ${f1(C.nine_app)})</span></div></div>
+    <div class="card dvcard"><h3>Divergence flags <span class="tag ${C.n?'cost':'ok'}">${C.n}</span></h3>${C.n?`<ol class="dvlist">${flags}</ol><p class="small muted">Gap = your pick's engine score at that slot minus the app pick's (W), and your pick as a % of his. A Close Call tag means the engine itself had your man within 2% (or the hand rule margin) of its pick. Scores are the default engine's (Big Moments off), so the gap measures the swap only.</p>`:`<p>Your build matches the app's 26 slot for slot. Tap a position on the <a href="#/${t0.key}">Clubhouse</a> diamond (or any slot button) to swap, or pick a city; differences show up here.</p>`}</div>
+    <div class="card"><div class="cmphead"><h3 style="margin:0">Side by side</h3><label class="small"><input type="checkbox" data-act="cmponly" ${CMP_ONLY?'checked':''}> Only differences</label></div>
+    <table class="cmp"><thead><tr><th>Slot</th><th>App default</th><th>Your build</th></tr></thead><tbody>${body}</tbody></table>
+    <p class="small muted">Highlighted rows differ. Numbers = engine score at that slot (W). Your build is stored only on this device.</p></div>
+    ${C.n?`<div class="tools"><button class="btn" data-act="clear">Clear all pins (back to the app's 26${CUR.city?' for this city':''})</button></div>`:''}</div>`; }
+// ---------- v1.9 What changed: roster changes vs the previous published engine data (data/changes.js, tools/make_changes.py) ----------
+function chgTeam(k,x){ const L=[]; if(x.added) L.push('new team');
+  if(x.in.length) L.push('In: '+x.in.map(([n,s])=>`${esc(n)} (${esc(s)})`).join(', '));
+  if(x.out.length) L.push('Out: '+x.out.map(([n,s])=>`${esc(n)} (${esc(s)})`).join(', '));
+  if(x.moved.length) L.push('Moved: '+x.moved.map(([n,a,b])=>`${esc(n)} ${esc(a)}→${esc(b)}`).join(', '));
+  return `<li><a href="#/${esc(k)}">${esc(x.name)}</a> <span class="small muted">${x.slots} slot${x.slots===1?'':'s'}</span><div class="small">${L.join(' · ')}</div></li>`; }
+function changesSheet(){ if(!CHG){ return; }
+  const ent=CHG.entries.map((e,i)=>{ const tk=Object.keys(e.teams); const head=i===0&&!e.to.sha?`This version (app ${esc(e.app||APP_UI)}, engine ${esc(e.engine)}) vs the last publish ${esc(e.base.sha)} (${esc(e.base.date)})`:`${esc(e.date)} · ${e.app?'app '+esc(e.app)+' · ':''}engine ${e.engine_prev!==e.engine?`${esc(e.engine_prev)} → `:''}${esc(e.engine)}`;
+    const sum=e.n_slots?`<b>${e.n_slots} roster slot change${e.n_slots===1?'':'s'} in ${e.n_teams} team${e.n_teams===1?'':'s'}</b>`:'<b>No roster changes</b> (same engine picks for all 30 teams)';
+    const bm=e.bm&&e.bm.n_slots?` · Big Moments rosters: ${e.bm.n_slots} slot change${e.bm.n_slots===1?'':'s'} in ${e.bm.n_teams} team${e.bm.n_teams===1?'':'s'}`:'';
+    return `<details class="chg"${i===0?' open':''}><summary>${head}</summary><p class="small">${sum}${bm}</p>${tk.length?`<ul class="chgl">${tk.map(k=>chgTeam(k,e.teams[k])).join('')}</ul>`:''}</details>`; }).join('');
+  $('#mbody').innerHTML=`<h2 style="margin-top:0">What changed</h2><p class="small muted">Default roster changes (starting nine, bench, rotation, bullpen) between published versions of the engine data, newest first. Generated at publish time by diffing the new data against the live site.</p>${ent}`;
+  $('#modal').hidden=false; $('#modal').scrollTop=0; }
 // ---------- v1.8: History / Almanac / Lore tabs (separate spots, same clubhouse: names open the player card) ----------
 function vTeamLore(k,view,sub){ compute(k); nav(view); const t=CUR.t;
   const body=view==='history'?LLLoreUI.history(t.key,sub):view==='almanac'?LLLoreUI.almanac(t.key):LLLoreUI.lore(t.key);
@@ -303,7 +347,7 @@ function bmCard(kind,x){ const b=bmOf(kind,x.id); if(!b) return ''; const t0=CUR
   return `<h3>Big Moments</h3><div class="kv bmkv"><div><span>October bonus</span><b>${w2p(b.d_oct)}</b></div><div><span>Clutch bonus</span><b>${w2p(b.d_cl)}</b></div><div><span>Big Moments total</span><b>${w2p(tot)}</b></div>${parts}<div><span>${lbl}: ${esc(D.version)} → with Big Moments</span><b style="font-size:15px">${f1(base.total)} → ${f1(base.total+tot)}</b></div></div>
    <div class="receipt bmtext"><p><b>October.</b> ${oct}</p><p><b>Clutch.</b> ${cl}</p>${kind==='p'&&b.sd_BF?`<p><b>Shutdown (relief, rule BM2b).</b> Over <b>${Math.round(b.sd_BF).toLocaleString('en-US')}</b> batters faced in relief for the ${esc(tn)}, his shutdown score is <b>${w2p(b.d_sd)}</b> W: win probability he added beyond what his runs prevented are already worth at that leverage, after shrinking (it barely repeats year to year) and the ±1.5 W cap. For relief innings it replaces Clutch, so the Clutch bonus above includes it and only his starts use two-way Clutch.</p>`:''}<p class="muted">${BMON?'Big Moments is ON: these bonuses are inside every score on this card and the roster was rebuilt with them.':'Big Moments is OFF: these numbers are shown for reference only; the scores on this card are pure '+esc(D.version)+'. Turn on the Big Moments switch on the team page to add them.'} Badges appear at +${D.bm.badge_min} W or more.</p></div>`; }
 function receipts(lg,cc){ if(!lg.length&&!cc.length) return `<h3>Receipt</h3><div class="receipt"><p>Not on the 26-man roster.</p></div>`;
-  return `<h3>Why he was picked</h3>`+lg.map(l=>`<div class="receipt"><p><b>${esc(l.slot)}</b> · ${esc(l.need)}</p><p>${esc(l.score)}</p><p class="muted">${esc(l.fit)}</p>${l.override?`<p><span class="tag ov">${l.override==='Fan override'?'Fan override':'Override note'}</span> ${esc(l.override)}</p>`:''}${l.close?`<p><span class="tag cc">Close Call</span> ${esc(l.close)}</p>`:''}</div>`).join('')
+  return `<h3>Why he was picked</h3>`+lg.map(l=>`<div class="receipt"><p><b>${esc(l.slot)}</b> · ${esc(l.need)}</p><p>${esc(l.score)}</p><p class="muted">${esc(neutral(l.fit))}</p>${l.override?`<p><span class="tag ov">${l.override==='Fan override'?'Fan override':'Override note'}</span> ${esc(l.override)}</p>`:''}${l.close?`<p><span class="tag cc">Close Call</span> ${esc(l.close)}</p>`:''}</div>`).join('')
    +cc.filter(c=>!lg.some(l=>l.slot===c.slot)).map(c=>`<div class="receipt"><p><span class="tag cc">Close Call</span> ${esc(c.slot)}: ${esc(c.pick)} ${c.pick_v} vs ${esc(c.alt)} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</p></div>`).join(''); }
 function pinUI(kind,n,h){ const p=CUR.pins;
   if(kind==='h'){ const cur=(p.roster||{})[n]||''; const inNine=Object.values(CUR.o.start).includes(n); const lp=(p.lineup||{})[n]||'';
@@ -321,13 +365,13 @@ function copy(txt,msg){ const done=()=>toast(msg||'Copied'); if(navigator.clipbo
   function fallback(){ const a=document.createElement('textarea'); a.value=txt; document.body.appendChild(a); a.select(); try{document.execCommand('copy'); done();}catch(e){ prompt('Copy:',txt);} a.remove(); } }
 function toast(m){ let d=$('#toast'); if(!d){ d=document.createElement('div'); d.id='toast'; d.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d232b;color:#fff;padding:8px 14px;border-radius:8px;z-index:99;font-size:14px'; document.body.appendChild(d);} d.textContent=m; d.style.display='block'; clearTimeout(d._t); d._t=setTimeout(()=>d.style.display='none',1800); }
 function download(name,txt){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
-function foot(){ $('#foot').innerHTML=`Legacy Lore Clubhouse app ${esc(D.app_version)} · ${D.teams.length} franchises · engine ${esc(D.bm.engine)} (Big Moments ${BMON?'ON':'OFF'}) · data ${esc(D.exported)} · static build, works offline · ${!verified()?`self-check running (${VDONE}/${D.teams.length})`:allOk()?'JS engine = Python engine (no pins) ✓ · Big Moments ✓':'self-check FAILED'}`; }
+function foot(){ $('#foot').innerHTML=`Legacy Lore Clubhouse app ${esc(APP_UI)} · ${CHG?`<a href="javascript:void 0" data-act="changes">What changed</a> · `:''}${D.teams.length} franchises · engine ${esc(D.bm.engine)} (Big Moments ${BMON?'ON':'OFF'}) · data ${esc(D.exported)} · static build, works offline · ${!verified()?`self-check running (${VDONE}/${D.teams.length})`:allOk()?'JS engine = Python engine (no pins) ✓ · Big Moments ✓':'self-check FAILED'}`; }
 // ---------- router ----------
 let VIEW='';
 function render(){ const h=location.hash.replace(/^#\/?/,'').split('/'); const k=h[0]; let html;
   if(TEAM(k)&&!LLData.loaded(k)){ const t=TEAM(k); $('#app').innerHTML=`<p class="loading">Loading ${esc(t.name)}…</p>`; foot();   // app v1.3.1: decode this team, then draw
     LLData.ensure(k).then(()=>{ if(location.hash.replace(/^#\/?/,'').split('/')[0]===k) render(); },e=>{ $('#app').innerHTML=`<div class="banner">Could not load ${esc(t.name)}: ${esc(e.message)}</div>`; }); return; }
-  if(TEAM(k)){ VIEW=h[1]||''; html=VIEW==='hitters'?vHit(k):VIEW==='pitchers'?vPit(k):['history','almanac','lore'].includes(VIEW)?vTeamLore(k,VIEW,h[2]):vClub(k); }
+  if(TEAM(k)){ VIEW=h[1]||''; html=VIEW==='compare'?vCompare(k):VIEW==='hitters'?vHit(k):VIEW==='pitchers'?vPit(k):['history','almanac','lore'].includes(VIEW)?vTeamLore(k,VIEW,h[2]):vClub(k); }
   else if(k==='history'){ CUR=null; nav('league'); html=LLLoreUI.league(h[1]); }
   else if(k==='rules') html=vRules(); else if(k==='about') html=vAbout(); else html=vHome();
   $('#app').innerHTML=html;
@@ -337,7 +381,7 @@ function render(){ const h=location.hash.replace(/^#\/?/,'').split('/'); const k
   const q=$('#q'); if(q){ q.oninput=e=>{ FILT.q=e.target.value; const pos=q.selectionStart; render(); const q2=$('#q'); q2.focus(); q2.setSelectionRange(pos,pos); }; }
   const pf=$('#posf'); if(pf) pf.onchange=e=>{ FILT.pos=e.target.value; if(FILT.pos) SORT.hit=['pval',false]; else if(SORT.hit[0]==='pval') SORT.hit=['total',false]; render(); };
   const rf=$('#rolef'); if(rf) rf.onchange=e=>{ FILT.role=e.target.value; render(); };
-  const tp=$('#teampick'); if(tp) tp.onchange=e=>{ if(e.target.value) location.hash='#/'+e.target.value+(VIEW&&TEAM(e.target.value)&&CUR?(['hitters','pitchers','history','almanac','lore'].includes(VIEW)?'/'+VIEW:''):''); };
+  const tp=$('#teampick'); if(tp) tp.onchange=e=>{ if(e.target.value) location.hash='#/'+e.target.value+(VIEW&&TEAM(e.target.value)&&CUR?(['compare','hitters','pitchers','history','almanac','lore'].includes(VIEW)?'/'+VIEW:''):''); };
   const cp=$('#citypick'); if(cp) cp.onchange=e=>{ saveCity(CUR.t0.key,e.target.value); compute(CUR.t0.key); render(); toast(e.target.value?'City: '+e.target.selectedOptions[0].text:'Full franchise'); };
 }
 document.addEventListener('click',e=>{
@@ -345,6 +389,7 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('[data-card]'); if(c&&!e.target.closest('select')){ e.preventDefault(); card(c.dataset.card,c.dataset.n); return; }
   const s=e.target.closest('[data-sort]'); if(s){ const [tb,col]=s.dataset.sort.split(':'); SORT[tb]=SORT[tb][0]===col?[col,!SORT[tb][1]]:[col,['name','throws','pos','conf','total_rank','p_rank'].includes(col)]; render(); return; }
   const a=e.target.closest('[data-act]'); if(a){ const act=a.dataset.act;
+    if(act==='changes'){ e.preventDefault(); changesSheet(); return; }
     if(act==='dopin'){ const kind=a.dataset.kind, n=a.dataset.n, slot=a.dataset.slot;
       setPins(p=>{ if(kind==='roster'){ p.roster=p.roster||{}; applyRosterPin(p,n,slot); } else { p.staff=p.staff||{}; applyStaffPin(p,n,/^SP/.test(slot)?'ROT':slot); } });
       $('#modal').hidden=true; toast('Pinned '+n+' to '+slot); return; }
@@ -355,7 +400,7 @@ document.addEventListener('click',e=>{
     if(a.tagName==='BUTTON'){
       if(act==='clear') setPins(p=>{ for(const k in p) delete p[k]; });
       if(act==='copy') copy(rosterText(),'Roster copied');
-      if(act==='export') download(`legacy_lore_${CUR.t.key}_${D.version}${BMON?'_bigmoments':''}.json`,JSON.stringify({team:CUR.t.name,engine:engLabel(),big_moments:BMON,pins:CUR.pins,start:CUR.o.start,bench:CUR.o.bench,rotation:CUR.o.rotation,pen:CUR.o.pen,lineup:CUR.o.lineup,close_calls:CUR.o.close_calls,log:CUR.o.log,team_runs:CUR.o.team_runs},null,1));
+      if(act==='export') download(`legacy_lore_${CUR.t.key}_${D.version}${BMON?'_bigmoments':''}.json`,JSON.stringify({team:CUR.t.name,engine:engLabel(),big_moments:BMON,pins:CUR.pins,start:CUR.o.start,bench:CUR.o.bench,rotation:CUR.o.rotation,pen:CUR.o.pen,lineup:CUR.o.lineup,close_calls:CUR.o.close_calls,log:CUR.o.log.map(l=>Object.assign({},l,{fit:neutral(l.fit)})),team_runs:CUR.o.team_runs},null,1));
       if(act==='pinsjson') copy(JSON.stringify(CUR.pins),'Pins JSON copied (engine_v5.py pins file)');
       if(act==='copyrules') copy(D.rules,'Rules copied'); } }
   if(e.target.closest('.x')||e.target.id==='modal') $('#modal').hidden=true; });
@@ -368,15 +413,16 @@ document.addEventListener('change',e=>{ const t=e.target;
       else { if(v) p[kind][n]=v; else delete p[kind][n]; } });
     card(t.dataset.pin==='staff'?'p':'h',n); toast('Rebuilt with fan override'); }
   if(t.dataset.act==='bm'){ setBM(t.checked); if(CUR) compute(CUR.t0.key); render(); toast(BMON?'Big Moments ON: rosters rebuilt':'Big Moments OFF: engine '+D.version); return; }
+  if(t.dataset.act==='cmponly'){ CMP_ONLY=t.checked; render(); return; }
   if(t.dataset.act==='rule-dh') setPins(p=>{ p.rules=p.rules||{}; if(t.checked) delete p.rules.dh_defense_first; else p.rules.dh_defense_first=false; });
   if(t.dataset.act==='rule-guard') setPins(p=>{ p.rules=p.rules||{}; if(t.checked) delete p.rules.primary_pos_guard; else p.rules.primary_pos_guard=false; }); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#modal').hidden=true; });
 window.addEventListener('hashchange',()=>{ FILT={q:'',pos:'',role:''}; $('#modal').hidden=true; render(); window.scrollTo(0,0); });
-if(window.LLLoreUI) LLLoreUI.init({esc,rerender:()=>render(),cur:()=>CUR,
+if(window.LLLoreUI) LLLoreUI.init({esc,rerender:()=>render(),cur:()=>CUR,appBase:()=>CUR?E.build(CUR.t,{}):null,
   kindOf:id=>{ if(!CUR) return null; if(CUR.t.hitters.some(r=>r.id===id)) return 'h'; if(CUR.t.pitchers.some(r=>r.id===id)) return 'p'; return null; },
   nameOf:id=>{ if(!CUR) return null; const x=CUR.t.hitters.find(r=>r.id===id)||CUR.t.pitchers.find(r=>r.id===id); return x?x.name:null; },
   kindByName:n=>{ if(!CUR) return null; if(CUR.t.hitters.some(r=>r.name===n)) return 'h'; if(CUR.t.pitchers.some(r=>r.name===n)) return 'p'; return null; }});
 render(); setTimeout(()=>runVerify(0),50);
 window.LL_SELFCHECK=()=>({done:verified(),ok:allOk(),VERIFY,VERIFY_BM});   // for the headless test
-window.LL_TEST={render,card,setBM,sort:(tb,col,asc)=>{ SORT[tb]=[col,asc]; },filt:f=>{ FILT=Object.assign({q:'',pos:'',role:''},f); }};   // app v1.3.1: used by tests/dom_compare.js only
+window.LL_TEST={render,card,setBM,compareNow:()=>CUR&&CMP?compareFor():null,sort:(tb,col,asc)=>{ SORT[tb]=[col,asc]; },filt:f=>{ FILT=Object.assign({q:'',pos:'',role:''},f); }};   // app v1.3.1: used by tests/dom_compare.js only
 })();

@@ -140,14 +140,16 @@ function storyCards(sec){ const st=(sec&&sec.stories)||[]; if(!st.length) return
   return `<div class="card"><h3>${esc(sec.title||'')}</h3>${sec.intro?`<p class="small muted">${esc(sec.intro)}</p>`:''}${st.map(s=>{ if(typeof s==='string') return `<div class="story"><p>${linkify(s)}</p></div>`;
     const links=(s.source_links||[]).map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`).join(' · ');
     return `<div class="story"><div><b>${linkify(s.title||'')}</b>${s.era?` <span class="muted small">${esc(s.era)}</span>`:''}</div>${s.subtitle?`<div class="small muted">${esc(s.subtitle)}</div>`:''}${s.hook?`<p class="small"><i>${linkify(s.hook)}</i></p>`:''}${s.body?`<p>${linkify(s.body)}</p>`:''}${links?`<div class="small">${links}</div>`:''}</div>`; }).join('')}</div>`; }
+// v1.9: the Story Bible's locked 26 lives only here. It is compared with the app's DEFAULT 26 for this view (city + Big Moments setting, never the
+// user's pins), and nothing flows the other way: app.js / engine.js / compare.js never read sb.locked_roster.
 function lockedRoster(lr){ if(!lr) return ''; const c=H.cur();
-  const eng=c?c.o:null; const engSet=eng?new Set([...Object.values(eng.start),...Object.values(eng.bench),...Object.values(eng.rotation),...Object.values(eng.pen)]):new Set();
-  const row=x=>{ const n=typeof x==='string'?x:x.name; const on=engSet.has(n); return `<tr><td><span class="pos">${esc(x.slot||'')}</span></td><td>${linkify(n)}${x.bat_order?` <span class="muted small">#${x.bat_order}</span>`:''}</td><td class="small">${on?'<span class="tag ok">engine agrees</span>':'<span class="tag cc">Joe call</span>'}</td></tr>`; };
+  const eng=c?(H.appBase?H.appBase():c.o):null; const engSet=eng?new Set([...Object.values(eng.start),...Object.values(eng.bench),...Object.values(eng.rotation),...Object.values(eng.pen)]):new Set();
+  const row=x=>{ const n=typeof x==='string'?x:x.name; const on=engSet.has(n); return `<tr><td><span class="pos">${esc(x.slot||'')}</span></td><td>${linkify(n)}${x.bat_order?` <span class="muted small">#${x.bat_order}</span>`:''}</td><td class="small">${on?'<span class="tag ok">engine agrees</span>':'<span class="tag bible">Bible pick</span>'}</td></tr>`; };
   const part=(h,L)=>L&&L.length?`<h3>${h}</h3><table><tbody>${L.map(row).join('')}</tbody></table>`:'';
-  return `<div class="card"><h3>${esc(lr.title||"Joe's Locked 26")}</h3>${lr.headline?`<p><b>${esc(lr.headline)}</b></p>`:''}${lr.blurb?`<p class="small">${linkify(lr.blurb)}</p>`:''}
+  return `<div class="card"><div class="small muted">Bible 26 vs app</div><h3>${esc(lr.title||'Story Bible 26')}</h3>${lr.headline?`<p><b>${esc(lr.headline)}</b></p>`:''}${lr.blurb?`<p class="small">${linkify(lr.blurb)}</p>`:''}
     <div class="grid"><div>${part('Starting nine',lr.starting_nine)}${part('Bench',lr.bench)}</div><div>${part('Rotation',lr.rotation)}${part('Bullpen',lr.bullpen)}</div></div>
     ${(lr.decisions||[]).length?`<details><summary class="small">Decisions (${lr.decisions.length})</summary><ul class="small">${lr.decisions.map(x=>`<li>${linkify(typeof x==='string'?x:(x.text||x.title||JSON.stringify(x)))}</li>`).join('')}</ul></details>`:''}
-    <p class="small muted">"Engine agrees" = on the current engine 26 for this view (${c&&c.city?esc(c.city.city):'full franchise'}${c&&Object.keys(c.pins||{}).length?', with your pins':''}). Joe calls are editorial; the engine never reads this list.</p></div>`; }
+    <p class="small muted">"Engine agrees" = also on the app's default 26 for this view (${c&&c.city?esc(c.city.city):'full franchise'}, no fan pins). "Bible pick" = an editorial Story Bible choice the engine did not make. This list is for reading only: the roster builder and the engine never use it.</p></div>`; }
 function itemList(title,items,intro){ if(!items||!items.length) return ''; return `<div class="card"><h3>${esc(title)}</h3>${intro?`<p class="small muted">${esc(intro)}</p>`:''}<ul>${items.map(x=>`<li>${typeof x==='string'?linkify(x):`${x.topic?`<b>${esc(x.topic)}</b>: `:''}${x.beat?`<b>${esc(x.beat)}</b>: `:''}${linkify(x.note||x.body||x.text||x.title||'')}`}</li>`).join('')}</ul></div>`; }
 function vLore(key){ const d=Lore.get(key); if(!d) return loading(key,'Lore');
   const c=H.cur(), t=c.t, lp=d.lore; let html='';
@@ -174,7 +176,7 @@ function vLore(key){ const d=Lore.get(key); if(!d) return loading(key,'Lore');
   }
   if(!lp){ // empty state + what we can already say
     const pl=Object.entries(d.players).filter(([id,r])=>H.kindOf(id)&&r.b).sort((a,b)=>b[1].b.length-a[1].b.length).slice(0,24);
-    html+=`<div class="banner"><b>No Story Bible for the ${esc(t.short)} yet.</b> When one lands it fills this tab: the story spine, highs and lows, legends, cult heroes, quirky lore and Joe's locked 26 (checked against the engine). History and Almanac already work for every club.</div>
+    html+=`<div class="banner"><b>No Story Bible for the ${esc(t.short)} yet.</b> When one lands it fills this tab: the story spine, highs and lows, legends, cult heroes, quirky lore and the Bible's locked 26 (compared with the app's 26). History and Almanac already work for every club.</div>
       <div class="card"><h3>Most-told players in the history threads</h3><p>${pl.map(([id,r])=>`<span class="pill">${chip(d,id)} ${r.b.length}</span>`).join(' ')||'<span class="muted small">none yet</span>'}</p><p class="small muted">Count of story threads (This Great Game / Baseball Almanac, linked on each card) that name him.</p></div>`;
   }
   return html; }
