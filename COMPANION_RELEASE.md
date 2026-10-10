@@ -1,0 +1,15 @@
+# Legacy Lore Clubhouse 2.0
+
+This release brings the reviewed roster-builder companion tools into the app. Fans can compare APEX, LSI career quality, peak quality and peak impact, inspect raw franchise totals and season statistics, and select their own players with existing eligibility and assignment protections.
+
+Selection, batting-order, October and Clutch explanations now use plain language, with the original formulas and scores expandable. The Big Moments roster banner is collapsed by default. Big Moments remains optional.
+
+Roster balance offers Standard (5 bench / 7 bullpen), 6 / 6, or 7 / 5, keeping five starters and a 26-player target. Extra bench seats repeat the approved bench-bat eligibility and DH-Prod ordering. Smaller bullpens retain the existing core role checks. Saved assignments that conflict with a new capacity must be moved or cleared first. The preference is saved per franchise. Standard matches the prior engine exactly across all 108 franchise/city and Big Moments builds.
+
+No APEX, Big Moments, or LSI formula or weight changed. LSI is a separate guide, with no blended rank and no WAR inputs. It omits defense and baserunning, so position values and overall APEX remain important. Batting and pitching LSI scales remain separate. The raw Lahman statistics end in 2025 and can differ from the sources used by the approved APEX export. Missing fields remain unavailable. Pre-1955 batting career LSI coverage is incomplete; partial quality and peaks are labeled, career impact is withheld, and available-season subtotals are identified. The 1954 Retrosheet pilot is displayed separately with reconstruction labels and the unresolved Finigan walk discrepancy.
+
+Changed application files: app.js (card integration, language, role options and capacity settings); engine.js (optional selection capacities only); compare.js (extra bench seats use DH-Prod); index.html (companion assets); companion.js (embedded approved companion/raw data and UI); companion.css (responsive companion UI and expandable explanations); download/legacy_lore.html (same app offline). Added tests/roster-balance.cjs and tests/fixtures/pre-companion-engine.js for exact Standard equivalence and capacity regression. Existing packed APEX, workload and city data are unchanged.
+
+Validation: 195,518 companion assertions preserve 10,022 APEX values and 108 Standard builds. Capacity checks cover 324 builds and 1,239 assertions. Browser checks cover 180 balance/BM combinations, 300 companion comparison views, 120 Big Moments player cards, 270 batting-order explanations and all 30 collapsible banners. Final release checks are recorded in the local publication report. Alternative balance comparisons with Big Moments off change bench/bullpen membership only; starting nines and rotations are unchanged for all 30 full franchises. Short historical city pools can still leave unfilled roles with warnings; capacity options do not waive qualification rules.
+
+Saved roster JSON for custom capacities is an app setting; the original frozen Python engine does not implement these optional capacities. Team combinations and game-archive features remain out of scope.

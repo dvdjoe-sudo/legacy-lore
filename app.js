@@ -3,7 +3,7 @@
 (function(){
 'use strict';
 const D=window.LL_DATA, E=window.LLEngine, $=s=>document.querySelector(s);
-const APP_UI='v1.9';   // app UI version (data/app_version from export_app_data.py stays as exported)
+const APP_UI='v2.0';   // app UI version (data/app_version from export_app_data.py stays as exported)
 const CMP=window.LLCompare, CHG=window.LL_CHANGES||null;
 // v1.9: the engine writes "pinned by Joseph" into fan-override receipts (kept for JS == Python parity); the UI shows it neutrally for every user
 const neutral=s=>String(s==null?'':s).replace(/pinned by Joseph/g,'pinned by you');
@@ -12,7 +12,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const num=v=>v===null||v===undefined||Number.isNaN(v)?null:v;
 const fx=(v,d=1)=>num(v)===null?'–':E.fmt(v,d);
 const obp=v=>num(v)===null?'–':E.fmt(v,3).replace(/^0\./,'.');
-const BENCH_SLOTS=['C2','UTIL-IF','OF4','BAT'];   // FLEX is not pinnable (engine_v5.py has no FLEX pin path)
+const BENCH_SLOTS=['C2','UTIL-IF','OF4','BAT','BAT2','BAT3'];   // FLEX is not pinnable (engine_v5.py has no FLEX pin path)
 const SLOT_NAME={C:'Catcher','1B':'First base','2B':'Second base','3B':'Third base',SS:'Shortstop',LF:'Left field',CF:'Center field',RF:'Right field',DH:'Designated hitter',C2:'Backup catcher','UTIL-IF':'Utility infielder',OF4:'4th outfielder',FLEX:'Flex',BAT:'Bench bat',
   SP1:'Starter 1',SP2:'Starter 2',SP3:'Starter 3',SP4:'Starter 4',SP5:'Starter 5',CL:'Closer',SU1:'Setup 1',SU2:'Setup 2',LHS:'Lefty specialist',LONG:'Long relief',MID1:'Middle relief 1',MID2:'Middle relief 2',MID3:'Middle relief 3'};
 const KEYS=['start','bench','rotation','pen','lineup','log','hfix','dh_table','pen_q','rot_scores','pit_omit','close_calls','rot_log','pen_log','pit_tie_log','dh_rule_log','dh_swap','team_runs','guard_log','util_failed'];
@@ -114,7 +114,7 @@ function verifyBanner(){ if(!verified()) return `<div class="banner vb">Self-che
 function bmSwitch(){ return `<div class="bmswitch"><label><input type="checkbox" data-act="bm" ${BMON?'checked':''}> <b>Big Moments</b></label> <span class="small muted">${BMON?'ON: scores include the October and Clutch bonuses (rules BM1–BM5), and rosters are rebuilt.':'OFF (default): pure engine '+esc(D.version)+'. Turn on to add October and Clutch bonuses to the scores.'}</span></div>`; }
 function bmBanner(){ if(!BMON||CUR.t.cityUnavailable) return ''; const a=E.build(CUR.city?E.withCity(CUR.t0,CUR.city):CUR.t0,{}), b=E.build(CUR.t,{}); const ch=[];
   for(const sec of ['start','bench','rotation','pen']) for(const s of Object.keys(a[sec])) if(a[sec][s]!==b[sec][s]) ch.push(`${s}: ${a[sec][s]} → ${b[sec][s]}`);
-  return `<div class="banner bm"><b>Big Moments ON</b>: October (positive-only, cap min(${D.bm.caps.oct_w.toFixed(1)} W, ${Math.round(D.bm.caps.oct_pct*100)}% of APEX)) + two-way Clutch (shrunk, cap ±${D.bm.caps.cl_w.toFixed(1)} W / ${Math.round(D.bm.caps.cl_pct*100)}%) are added to every score. Engine picks vs default ${esc(D.version)}: ${ch.length?ch.map(x=>`<span class="pill">${esc(x)}</span>`).join(' '):'no roster or role changes'}; nine-starter value ${f1(b.team_runs)} W vs ${f1(a.team_runs)} W.</div>`; }
+  return LLPlain.banner(`<div class="banner bm"><b>Big Moments ON</b>: October (positive-only, cap min(${D.bm.caps.oct_w.toFixed(1)} W, ${Math.round(D.bm.caps.oct_pct*100)}% of APEX)) + two-way Clutch (shrunk, cap ±${D.bm.caps.cl_w.toFixed(1)} W / ${Math.round(D.bm.caps.cl_pct*100)}%) are added to every score. Engine picks vs default ${esc(D.version)}: ${ch.length?ch.map(x=>`<span class="pill">${esc(x)}</span>`).join(' '):'no roster or role changes'}; nine-starter value ${f1(b.team_runs)} W vs ${f1(a.team_runs)} W.</div>`); }
 function pinBanner(){ if(CUR.t.cityUnavailable)return '<div class="banner">Saved overrides are retained; city assignments cannot be evaluated until city-scoped data is recovered.</div>'; const p=CUR.pins; const n=pinCount(p); const dr=CUR.dropped.length?`<div class="small muted">Ignored stale pins: ${esc(CUR.dropped.join(', '))}</div>`:'';
   if(!n) return dr?`<div class="banner">${dr}</div>`:'';
   const items=[]; for(const [a,s] of Object.entries(p.roster||{})) items.push(`${esc(a)} → ${esc(s)}`); for(const [a,s] of Object.entries(p.lineup||{})) items.push(`${esc(a)} bats #${s}`);
@@ -122,7 +122,7 @@ function pinBanner(){ if(CUR.t.cityUnavailable)return '<div class="banner">Saved
   const base=E.build(CUR.t,{}); const dv=CUR.o.team_runs===null?null:CUR.o.team_runs-base.team_runs;
   return `<div class="banner"><b>Fan override active</b> (${n}): ${items.map(x=>`<span class="pill">${x}</span>`).join(' ')}<br>
    Nine-starter value ${f1(CUR.o.team_runs)} W vs engine pick ${f1(base.team_runs)} W (${p1(dv)} W). Everything else rebuilt around the pins.
-   <div class="tools" style="margin:6px 0 0"><a class="btn p" href="#/${CUR.t0.key}/compare">Compare with the app's 26</a><button class="btn" data-act="clear">Clear all pins</button><button class="btn" data-act="pinsjson">Show pins file (for engine_v5.py)</button></div>${dr}</div>`; }
+   <div class="tools" style="margin:6px 0 0"><a class="btn p" href="#/${CUR.t0.key}/compare">Compare with the app's 26</a><button class="btn" data-act="clear">Clear all pins</button><button class="btn" data-act="pinsjson">Show saved roster settings</button></div>${dr}</div>`; }
 const POSXY={C:[50,90],'1B':[77,64],'2B':[64,43],'3B':[23,64],SS:[36,43],LF:[17,24],CF:[50,12],RF:[83,24],DH:[86,90]};
 function field(){ const o=CUR.o;
   return `<div class="field"><svg viewBox="0 0 100 86" preserveAspectRatio="none" aria-hidden="true"><path d="M50 84 L2 36 Q50 -14 98 36 Z" fill="#3d7f46"/><path d="M50 80 L28 58 L50 36 L72 58 Z" fill="#c99a63"/><path d="M50 74 L34 58 L50 42 L66 58 Z" fill="#3d7f46"/><circle cx="50" cy="58" r="3" fill="#c99a63"/></svg>
@@ -141,7 +141,7 @@ function gapsBanner(){
 function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; const ob=o._objs;
   const logBy=s=>o.log.find(l=>l.slot===s);
   const lineup=o.lineup.map(l=>{ const h=hitter(l.name); const lg=logBy(l.pos);
-    return `<tr class="click" data-card="h" data-n="${esc(l.name)}"><td class="slot">${l.slot}</td><td><span class="pos">${l.pos}</span> <span class="name">${esc(l.name)}</span> <span class="muted small">${esc(l.bats)}</span>${pinTag(l.name)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(neutral(l.note))}</div></td>
+    return `<tr class="click" data-card="h" data-n="${esc(l.name)}"><td class="slot">${l.slot}</td><td><span class="pos">${l.pos}</span> <span class="name">${esc(l.name)}</span> <span class="muted small">${esc(l.bats)}</span>${pinTag(l.name)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}${LLPlain.lineupNote(l)}</td>
      <td class="n">${obp(l.OBP)}</td><td class="n hide-s">${obp(l.SLG)}</td><td class="n hide-s">${l.OBPplus}</td><td class="n hide-s">${l.ISOplus}</td><td class="n">${fx(l.bat600)}</td><td class="n">${f1(h['v_'+l.pos])}</td></tr>`;}).join('');
   const benchRows=Object.entries(o.bench).map(([s,n])=>{ const h=hitter(n); const lg=logBy(s); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="h" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(h.pos)}</span>${pinTag(n)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(lg?neutral(lg.fit):'')}</div></td><td class="n">${f1(h.total)}</td><td class="n hide-s">#${h.total_rank}</td></tr>`;}).join('');
   const rotRows=Object.entries(o.rotation).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.SPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${Math.round(p.IP)}</td></tr>`;}).join('');
@@ -268,8 +268,8 @@ function swapCands(slot){
       const pins=clonePins(p=>applyRosterPin(p,h.name,slot));
       const o2=E.build(t,pins); const cost=base-o2.team_runs;
       out.push({kind:'h',name:h.name,cost,note:onNine.has(h.name)?'on the nine':(slotOf(h.name)||'off roster'),v:h[slot==='DH'?'dhAPEX':('v_'+slot)]}); }
-  } else if(['C2','UTIL-IF','OF4','BAT'].includes(slot)){
-    const cur=o.bench[slot]; const key=slot==='BAT'?'dhAPEX':'total';
+  } else if(['C2','UTIL-IF','OF4','BAT','BAT2','BAT3'].includes(slot)){
+    const cur=o.bench[slot]; const key=['BAT','BAT2','BAT3'].includes(slot)?'dhAPEX':'total';
     for(const h of E_sorted(t._S,key).slice(0,40)){ if(h.name===cur) continue;
       if(slot==='C2'&&!elig(h,'C')) continue;
       if(slot==='OF4'&&!(elig(h,'LF')||elig(h,'CF')||elig(h,'RF'))) continue;
@@ -291,7 +291,7 @@ function swapCands(slot){
 }
 function swapSheet(slot){
   const o=CUR.o; const cur=o.start[slot]||o.bench[slot]||o.rotation[slot]||o.pen[slot]||null;
-  const kind=POS9.includes(slot)||['C2','UTIL-IF','OF4','BAT'].includes(slot)?'h':'p';
+  const kind=POS9.includes(slot)||['C2','UTIL-IF','OF4','BAT','BAT2','BAT3'].includes(slot)?'h':'p';
   const cands=swapCands(slot);
   const rows=cands.map(c=>{ const cost=c.cost==null?'–':(c.cost===0?'0.0':p1(-c.cost).replace('+','+').replace('−','−')); // show gain as + when cost negative
     const gain=c.cost==null?'–':p1(-c.cost);
@@ -326,12 +326,13 @@ function card(kind,n){ if(!CUR) return; const t=CUR.t, o=CUR.o; let h=kind==='h'
     <div class="kv"><div><span>Combined (#${h.p_rank})</span><b>${f1(h.total)}</b></div><div><span>Starter${h.sp_ok?'':' (not eligible)'}</span><b>${f1(h.SPx)}</b></div><div><span>Reliever${h.rp_ok?'':' (not eligible)'}</span><b>${f1(h.RPx)}</b></div><div><span>Peak3 / Prime5 / Career</span><b style="font-size:15px">${f1(s.apex[0][0])} / ${f1(s.apex[0][1])} / ${f1(s.apex[0][2])}</b></div><div><span>Franchise APEX-R wins</span><b>${f1(h.c_wins)}</b></div><div><span>Runs prevented / replacement</span><b style="font-size:15px">${f0(h.c_prev)} / ${f0(h.c_rep)}</b></div></div>`;
     html+=bmCard('p',h);
     const lines=[...o.rot_log,...o.pen_log,...o.pit_tie_log].filter(x=>x.includes(n));
-    const role=slot?(slot.startsWith('SP')?`In the rotation (${slot}): top 5 by Starter score among Starter-eligible pitchers, then min 1 LHP and 1 RHP (90% swap if needed).`:`In the bullpen (${slot}): top 7 by Reliever score among Reliever-eligible pitchers, then a dedicated lefty specialist (closer does not count as the LHS); roles by quality index (0.5 Reliever + 0.5 ERA+, z-scores), LHS by K%, LONG retains the existing innings-per-game label; LONG/SP6 qualification remains unverified pending recovery of the approved rule.`):'Not on the staff.';
+    const role=slot?(slot.startsWith('SP')?`In the rotation (${slot}): top 5 by Starter score among Starter-eligible pitchers, then min 1 LHP and 1 RHP (90% swap if needed).`:`In the bullpen (${slot}): top 7 by Reliever score among Reliever-eligible pitchers, then a dedicated lefty specialist (closer does not count as the LHS); roles by quality index (0.5 Reliever + 0.5 ERA+, z-scores), LHS by K%, LONG requires 100 franchise relief IP, three qualifying seasons and long-relief usage. The approved SP6 option also requires 300 starter IP and a place outside the selected top five starters.`):'Not on the staff.';
     const pq=o.pen_q.find(x=>x.name===n);
     html+=`<h3>Receipt</h3><div class="receipt"><p>${esc(role)}</p>${pq?`<p>Quality index ${f3(pq.q)} (K/BB ${pq.KBB}, ERA+ ${pq.ERAplus}, IP per game ${pq.ip_per_app})</p>`:''}${lines.map(x=>`<p>${esc(x)}</p>`).join('')}${cc.map(c=>`<p><span class="tag cc">Close Call</span> ${esc(c.slot)}: ${esc(c.pick)} ${c.pick_v} vs ${esc(c.alt)} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</p>`).join('')}</div>`;
     html+=pinUI('p',n,h);
     html+=`<h3>Seasons</h3><div class="scroll" style="max-height:280px"><table><thead><tr><th>Year</th><th>Role</th><th class="n">G</th><th class="n">IP</th><th class="n">ERA</th><th class="n hide-s">FIP</th><th class="n hide-s">LI</th><th class="n">Wins</th></tr></thead><tbody>${s.seasons.map(r=>`<tr><td>${r.y}</td><td>${r.role==='S'?'Start':'Relief'}</td><td class="n">${r.G}</td><td class="n">${fx(r.IP)}</td><td class="n">${fx(r.ERA,2)}</td><td class="n hide-s">${fx(r.FIP,2)}</td><td class="n hide-s">${r.role==='R'?fx(r.li,2):''}</td><td class="n"><b>${fx(r.w,2)}</b></td></tr>`).join('')}</tbody></table></div>`;
   }
+  if(window.LLCompanion) html+=LLCompanion.card(CUR,h,kind);
   if(window.LLLoreUI) html+=LLLoreUI.card(CUR.t0.key,h.id);   // v1.8: history threads, awards, league-leading lines, HOF
   $('#mbody').innerHTML=html; $('#modal').hidden=false; $('#modal').scrollTop=0; }
 function bmCard(kind,x){ const b=bmOf(kind,x.id); if(!b) return ''; const t0=CUR.t0, tn=t0.short;
@@ -343,16 +344,14 @@ function bmCard(kind,x){ const b=bmOf(kind,x.id); if(!b) return ''; const t0=CUR
     :`No regular-season play-by-play for his ${esc(tn)} years, so no clutch number.`;
   const parts=kind==='p'?`<div><span>Starter / Reliever parts</span><b style="font-size:15px">${w2p(b.d_oct_SPx+b.d_cl_SPx)} / ${w2p(b.d_oct_RPx+b.d_cl_RPx)}</b></div>`:'';
   const lbl=kind==='h'?'Total APEX':'Combined';
-  return `<h3>Big Moments</h3><div class="kv bmkv"><div><span>October bonus</span><b>${w2p(b.d_oct)}</b></div><div><span>Clutch bonus</span><b>${w2p(b.d_cl)}</b></div><div><span>Big Moments total</span><b>${w2p(tot)}</b></div>${parts}<div><span>${lbl}: ${esc(D.version)} → with Big Moments</span><b style="font-size:15px">${f1(base.total)} → ${f1(base.total+tot)}</b></div></div>
-   <div class="receipt bmtext"><p><b>October.</b> ${oct}</p><p><b>Clutch.</b> ${cl}</p>${kind==='p'&&b.sd_BF?`<p><b>Shutdown (relief, rule BM2b).</b> Over <b>${Math.round(b.sd_BF).toLocaleString('en-US')}</b> batters faced in relief for the ${esc(tn)}, his shutdown score is <b>${w2p(b.d_sd)}</b> W: win probability he added beyond what his runs prevented are already worth at that leverage, after shrinking (it barely repeats year to year) and the ±1.5 W cap. For relief innings it replaces Clutch, so the Clutch bonus above includes it and only his starts use two-way Clutch.</p>`:''}<p class="muted">${BMON?'Big Moments is ON: these bonuses are inside every score on this card and the roster was rebuilt with them.':'Big Moments is OFF: these numbers are shown for reference only; the scores on this card are pure '+esc(D.version)+'. Turn on the Big Moments switch on the team page to add them.'} Badges appear at +${D.bm.badge_min} W or more.</p></div>`; }
-function receipts(lg,cc){ if(!lg.length&&!cc.length) return `<h3>Receipt</h3><div class="receipt"><p>Not on the 26-man roster.</p></div>`;
-  return `<h3>Why he was picked</h3>`+lg.map(l=>`<div class="receipt"><p><b>${esc(l.slot)}</b> · ${esc(l.need)}</p><p>${esc(l.score)}</p><p class="muted">${esc(neutral(l.fit))}</p>${l.override?`<p><span class="tag ov">${l.override==='Fan override'?'Fan override':'Override note'}</span> ${esc(l.override)}</p>`:''}${l.close?`<p><span class="tag cc">Close Call</span> ${esc(l.close)}</p>`:''}</div>`).join('')
-   +cc.filter(c=>!lg.some(l=>l.slot===c.slot)).map(c=>`<div class="receipt"><p><span class="tag cc">Close Call</span> ${esc(c.slot)}: ${esc(c.pick)} ${c.pick_v} vs ${esc(c.alt)} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</p></div>`).join(''); }
+  const detailed=`<h3>Big Moments</h3><div class="kv bmkv"><div><span>October bonus</span><b>${w2p(b.d_oct)}</b></div><div><span>Clutch bonus</span><b>${w2p(b.d_cl)}</b></div><div><span>Big Moments total</span><b>${w2p(tot)}</b></div>${parts}<div><span>${lbl}: ${esc(D.version)} → with Big Moments</span><b style="font-size:15px">${f1(base.total)} → ${f1(base.total+tot)}</b></div></div>
+   <div class="receipt bmtext"><p><b>October.</b> ${oct}</p><p><b>Clutch.</b> ${cl}</p>${kind==='p'&&b.sd_BF?`<p><b>Shutdown (relief, rule BM2b).</b> Over <b>${Math.round(b.sd_BF).toLocaleString('en-US')}</b> batters faced in relief for the ${esc(tn)}, his shutdown score is <b>${w2p(b.d_sd)}</b> W: win probability he added beyond what his runs prevented are already worth at that leverage, after shrinking (it barely repeats year to year) and the ±1.5 W cap. For relief innings it replaces Clutch, so the Clutch bonus above includes it and only his starts use two-way Clutch.</p>`:''}<p class="muted">${BMON?'Big Moments is ON: these bonuses are inside every score on this card and the roster was rebuilt with them.':'Big Moments is OFF: these numbers are shown for reference only; the scores on this card are pure '+esc(D.version)+'. Turn on the Big Moments switch on the team page to add them.'} Badges appear at +${D.bm.badge_min} W or more.</p></div>`; return LLPlain.bigMoments(b,kind,BMON,detailed); }
+function receipts(lg,cc){ return LLPlain.receipts(lg,cc); }
 function pinUI(kind,n,h){ const p=CUR.pins;
   if(kind==='h'){ const cur=(p.roster||{})[n]||''; const inNine=Object.values(CUR.o.start).includes(n); const lp=(p.lineup||{})[n]||'';
-    return `<h3>Fan override</h3><div class="tools"><label class="small">Pin to slot <select data-pin="roster" data-n="${esc(n)}"><option value="">(no pin)</option>${POS9.concat(BENCH_SLOTS).map(s=>`<option value="${s}" ${cur===s?'selected':''}>${s}${POS9.includes(s)&&s!=='DH'&&!startOk(h,s)?' (outside rules)':''}</option>`).join('')}</select></label>
+    return `<h3>Fan override</h3><div class="tools"><label class="small">Pin to slot <select data-pin="roster" data-n="${esc(n)}"><option value="">(no pin)</option>${POS9.concat(BENCH_SLOTS.filter(s=>s!=='BAT2'&&s!=='BAT3'||Number(s.slice(3))<=((CUR.pins.rules?.bench_size||5)-4))).map(s=>`<option value="${s}" ${cur===s?'selected':''}>${s}${POS9.includes(s)&&s!=='DH'&&!startOk(h,s)?' (outside rules)':''}</option>`).join('')}</select></label>
      <label class="small">Bat in slot <select data-pin="lineup" data-n="${esc(n)}" ${inNine||lp?'':'disabled'}><option value="">(rules)</option>${[1,2,3,4,5,6,7,8,9].map(k=>`<option ${+lp===k?'selected':''}>${k}</option>`).join('')}</select></label></div><p class="small muted">Pins rebuild the nine, bench, and lineup around him; the receipt says "Fan override". Lineup pins work for players in the starting nine.</p>`; }
-  const cur=(p.staff||{})[n]||''; const roleOpts=['CL','SU1','SU2','LHS','LONG','MID1','MID2'];
+  const cur=(p.staff||{})[n]||''; const roleOpts=['CL','SU1','SU2','LHS','LONG'].concat((CUR.pins.rules?.bench_size||5)<=6?['MID1']:[],(CUR.pins.rules?.bench_size||5)===5?['MID2']:[]);
   return `<h3>Fan override</h3><div class="tools"><label class="small">Pin to <select data-pin="staff" data-n="${esc(n)}"><option value="">(no pin)</option><option value="ROT" ${cur==='ROT'?'selected':''}>Rotation</option><option value="PEN" ${cur==='PEN'?'selected':''}>Bullpen</option>${roleOpts.map(r=>`<option value="${r}" ${cur===r?'selected':''}>${r}</option>`).join('')}</select></label></div><p class="small muted">Rotation / bullpen pins force that unit. A role pin (CL, SU1, …) forces the bullpen and that role; the rest rebuilds around him.</p>`; }
 // ---------- export ----------
 function rosterText(){ const t=CUR.t,o=CUR.o; if(t.cityUnavailable)return t.name+'\nCity-specific roster and all APEX components: unavailable. Approved city inputs and scoring pipeline must be recovered.'; const L=[`ALL-TIME ${t.name.toUpperCase()} – Legacy Lore Clubhouse (engine ${engLabel()})${pinCount(CUR.pins)?' – with fan override pins':''}`,...(CUR.city?['Full franchise stats; assigned to the city with the most franchise games.']:[]),'','LINEUP'];
@@ -425,5 +424,6 @@ if(window.LLLoreUI) LLLoreUI.init({esc,rerender:()=>render(),cur:()=>CUR,appBase
   kindByName:n=>{ if(!CUR) return null; if(CUR.t.hitters.some(r=>r.name===n)) return 'h'; if(CUR.t.pitchers.some(r=>r.name===n)) return 'p'; return null; }});
 render(); setTimeout(()=>runVerify(0),50);
 window.LL_SELFCHECK=()=>({done:verified(),ok:allOk(),VERIFY,VERIFY_BM});   // for the headless test
+window.LL_ROSTER={current:()=>CUR,card,render,setBalance:size=>{setPins(p=>{p.rules=p.rules||{};if(size===5)delete p.rules.bench_size;else p.rules.bench_size=size;});render();}};
 window.LL_TEST={render,card,setBM,compareNow:()=>CUR&&CMP?compareFor():null,sort:(tb,col,asc)=>{ SORT[tb]=[col,asc]; },filt:f=>{ FILT=Object.assign({q:'',pos:'',role:''},f); }};   // app v1.3.1: used by tests/dom_compare.js only
 })();

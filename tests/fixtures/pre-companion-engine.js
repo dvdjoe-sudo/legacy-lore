@@ -47,7 +47,6 @@ function longQualification(team,p){
  return {ok:native||sp6,type:native?'LONG':sp6?'LONG/SP6':null,native,sp6,workload:w};
 }
 function reviewPins(team,raw){
- const benchSize=[5,6,7].includes(raw?.rules?.bench_size)?raw.rules.bench_size:5,penSize=12-benchSize;
  raw=raw||{}; const pins={roster:{},staff:{},lineup:{},rules:raw.rules||{},acknowledged:raw.acknowledged||[]},warnings=[];
  const H=new Map(team.hitters.map(h=>[h.name,h])),P=new Map(team.pitchers.map(p=>[p.name,p]));
  const slots={roster:new Map(),staff:new Map(),lineup:new Map()}; let nr=0,np=0;
@@ -56,11 +55,11 @@ function reviewPins(team,raw){
  function issue(kind,name,slot,message,structural){const key=JSON.stringify([kind,name,slot,message]);const acknowledged=!structural&&pins.acknowledged.includes(key);warnings.push({key,kind,name,slot,message,structural,acknowledged});return acknowledged;}
  for(const kind of ['roster','staff','lineup']) for(const [name,slot] of Object.entries(raw[kind]||{})){
   const row=(kind==='staff'?P:H).get(name);
-  const allowed=kind==='roster'?POS9.concat(['C2','UTIL-IF','OF4','BAT'],benchSize>=6?['BAT2']:[],benchSize===7?['BAT3']:[]).includes(slot):kind==='staff'?['ROT','PEN','CL','SU1','SU2','LHS','LONG'].concat(penSize>=6?['MID1']:[],penSize===7?['MID2']:[]).includes(slot):Number.isInteger(slot)&&slot>=1&&slot<=9;
+  const allowed=kind==='roster'?POS9.concat(['C2','UTIL-IF','OF4','BAT']).includes(slot):kind==='staff'?['ROT','PEN','CL','SU1','SU2','LHS','LONG','MID1','MID2'].includes(slot):Number.isInteger(slot)&&slot>=1&&slot<=9;
   if(!row||!allowed){issue(kind,name,slot,'Unknown player or assignment',true);continue;}
   const unique=!(kind==='staff'&&['ROT','PEN'].includes(slot));
   if(unique&&slots[kind].has(slot)){issue(kind,name,slot,'Conflicting assignment with '+slots[kind].get(slot),true);continue;}
-  if(kind==='staff'&&((slot==='ROT'&&nr>=5)||(slot!=='ROT'&&np>=penSize))){issue(kind,name,slot,'Staff capacity exceeded',true);continue;}
+  if(kind==='staff'&&((slot==='ROT'&&nr>=5)||(slot!=='ROT'&&np>=7))){issue(kind,name,slot,'Staff capacity exceeded',true);continue;}
   if(kind==='staff'&&Object.keys(pins.roster).some(n=>H.get(n).id===row.id)){issue(kind,name,slot,'Duplicate player across hitter and pitcher assignments',true);continue;}
   let message='';
   if(kind==='roster'){
@@ -68,7 +67,7 @@ function reviewPins(team,raw){
    if(POS9.includes(pos)&&!eligible(row,pos)) message='Position eligibility violation';
    else if(POS.includes(slot)&&raw.rules?.primary_pos_guard!==false&&gp(row,pos)<((raw.rules?.primary_pos_guard||{}).pct??0.25)*row.G_team&&Math.max(...FAMS.map(p=>gp(row,p)))>gp(row,pos)) message='Starting position guard violation';
    else if(slot==='OF4'&&!['LF','CF','RF'].some(p=>eligible(row,p))) message='Outfield eligibility violation';
-   else if(['BAT','BAT2','BAT3'].includes(slot)&&row.PA_bref<1500) message='Bench bat workload violation';
+   else if(slot==='BAT'&&row.PA_bref<1500) message='Bench bat workload violation';
    else if(slot==='UTIL-IF'&&row.ss_rf150<SS_GLOVE_FLOOR) message='Utility glove threshold violation';
   } else if(kind==='staff'){
    if(slot==='ROT'&&!row.sp_ok) message='Starter eligibility violation';
@@ -91,7 +90,6 @@ function withCity(team,city){
 // ---------- engine ----------
 function build(team,pins){
   const reviewed=team.cityUnavailable?{pins:pins||{},warnings:[]}:reviewPins(team,pins); pins=reviewed.pins; const warnings=reviewed.warnings; const HF=new Set(team.hfloat||[]);
-  const benchSize=[5,6,7].includes(pins.rules?.bench_size)?pins.rules.bench_size:5,penSize=12-benchSize;
   const PX=team._P||(team._P=prep(team.pitchers));
   const reservedPitchers=new Set(Object.keys(pins.staff||{}).map(n=>PX.find(p=>p.name===n)?.id));
   const S=(team._S||(team._S=prep(team.hitters))).filter(h=>!reservedPitchers.has(h.id));
@@ -191,7 +189,7 @@ function build(team,pins){
   function take(slot,df,need,fit,why,key){ key=key||'total';
     const pn=Object.entries(RP_PINS).filter(([n,sl])=>sl===slot).map(x=>x[0]);
     if(pn.length){ const h=byName.get(pn[0]); rec(slot,h,`total ${f1(h.total)}`,need,'pinned by Joseph','Fan override'); bench[slot]=h; return; }
-    df=sortBy(df,key,false); if(!df.length){ if(THIN||slot==='BAT2'||slot==='BAT3') gaps.push(slot); return; } const h=df[0], t=rest()[0]||h;
+    df=sortBy(df,key,false); if(!df.length){ if(THIN) gaps.push(slot); return; } const h=df[0], t=rest()[0]||h;
     const over=t.name===h.name?null:(why?why(t,h):`${t.name} (#${t.total_rank}) higher total but doesn't fit ${slot}`);
     rec(slot,h,`total ${f1(h.total)} (#${h.total_rank})`,need,fit(h),over); used.add(h.name); bench[slot]=h;
     if(df.length>1) close(slot,h.name,h[key],df[1].name,df[1][key],(key==='dhAPEX'?'DH-Prod':'Total APEX')+' among eligible (W)');
@@ -217,7 +215,6 @@ function build(team,pins){
       pick.name===top.name?null:`${top.name} (#${top.total_rank}, ${f1(top.total)}) is best total but adds to the thicker group`);
   }
   take('BAT',rest().filter(h=>h.PA_bref>=1500),'bench bat: best run producer left (DH-Prod)',h=>`DH-Prod ${f1(h.dhAPEX)} (Hit-APEX ${f1(h.batAPEX)}); ${pyStr(h.rbat600,HF.has('rbat600'))} BatRuns/600; bats ${h.bats}`,(t,h)=>`${t.name} (#${t.total_rank}) higher total but DH-Prod ${f1(t.dhAPEX)} vs ${f1(h.dhAPEX)}`,'dhAPEX');
-  for(let i=2;i<=benchSize-4;i++) take('BAT'+i,rest().filter(h=>h.PA_bref>=1500),'extra bench hitter: existing bench-bat rules',h=>`DH-Prod ${f1(h.dhAPEX)}; bats ${h.bats}`,null,'dhAPEX');
   // pitchers
   const selectedHitters=new Set([...Object.values(start),...Object.values(bench)].map(h=>h.id));
   const pitchersAvailable=PX.filter(p=>!selectedHitters.has(p.id));
@@ -260,9 +257,9 @@ function build(team,pins){
   { const r5=sortBy(rot.filter(r=>!PIN_ROT.includes(r.name)),'SPx',true); const nx=sortBy(SPP.filter(r=>!rot.some(x=>x.id===r.id)&&!ROT_OUT.includes(r.id)),'SPx',false);
     if(r5.length&&nx.length) close('SP5',r5[0].name,r5[0].SPx,nx[0].name,nx[0].SPx,'SP-APEX, last rotation spot (W)'); }
   let RPP=notIn(pitchersAvailable.filter(r=>r.rp_ok),rot); let pen;
-  if(PIN_PEN.length){ RPP=RPP.filter(r=>!PIN_PEN.includes(r.name)); const fx=notIn(pitchersAvailable.filter(r=>PIN_PEN.includes(r.name)),rot); const nf=penSize-fx.length;
-    pen=fx.concat(nf>0?tieCut(sortBy(RPP,'RPx',false).slice(0,nf),RPP,'RPx','PEN'+penSize):[]); }
-  else pen=tieCut(sortBy(RPP,'RPx',false).slice(0,penSize),RPP,'RPx','PEN'+penSize);
+  if(PIN_PEN.length){ RPP=RPP.filter(r=>!PIN_PEN.includes(r.name)); const fx=notIn(pitchersAvailable.filter(r=>PIN_PEN.includes(r.name)),rot); const nf=7-fx.length;
+    pen=fx.concat(nf>0?tieCut(sortBy(RPP,'RPx',false).slice(0,nf),RPP,'RPx','PEN7'):[]); }
+  else pen=tieCut(sortBy(RPP,'RPx',false).slice(0,7),RPP,'RPx','PEN7');
   const deco=r=>Object.assign({},r,{lefty:r.throws==='L',ip_per_app:r.IP/r.G,long:(r.IP/r.G>=1.5)||(r.GS>=20)});
   pen=pen.map(deco); const pen_log=PIN_PEN.map(n=>`Fan override: ${n} pinned to the bullpen`); /* Dedicated LHS: closer does not count toward PEN_MIN_LHP. */
   let _rest=notIn(RPP,pen).map(deco);
@@ -290,7 +287,7 @@ function build(team,pins){
   }
   // Preserve existing bullpen and LONG role selection while the approved LONG/SP6 rule is unavailable.
   { const p7=sortBy(pen.filter(r=>!PIN_PEN.includes(r.name)),'RPx',true); const p8=_rest.length?sortBy(_rest,'RPx',false)[0]:null;
-    if(p8&&p7.length) close('PEN'+penSize,p7[0].name,p7[0].RPx,p8.name,p8.RPx,'RP-APEX, last bullpen spot (W)'); }
+    if(p8&&p7.length) close('PEN7',p7[0].name,p7[0].RPx,p8.name,p8.RPx,'RP-APEX, last bullpen spot (W)'); }
   applyPenQ(pen);
   const roles={}; let o=sortBy(pen,'q',false);
   /* v0.9.5.1: closer eligibility (cl_ok from engine_v5.py: 1+ franchise season with 10+ SV since 1969 or 40%+ of relief games finished); first eligible in closer order closes; skipped when a closer is role-pinned */
@@ -314,9 +311,9 @@ function build(team,pins){
       const reliever=sortBy(available.filter(r=>longQualification(team,r).type==='LONG'),'RPx',false)[0];
       const candidate=emergency||reliever;
       const out_=sortBy(left.filter(r=>!PIN_PEN.includes(r.name)),'RPx',true)[0];
-      if(candidate&&(pen.length<penSize||out_)){
+      if(candidate&&(pen.length<7||out_)){
         chosen=deco(candidate);
-        if(pen.length>=penSize){pen=pen.filter(r=>r.id!==out_.id);left=left.filter(r=>r.id!==out_.id);}
+        if(pen.length>=7){pen=pen.filter(r=>r.id!==out_.id);left=left.filter(r=>r.id!==out_.id);}
         pen.push(chosen);applyPenQ(pen);
         pen_log.push(`LONG qualification: ${chosen.name} (${longQualification(team,chosen).type}) ${out_?'replaces '+out_.name:'fills a bullpen vacancy'}; rotation, closer, setup, specialist and manual assignments protected`);
       }

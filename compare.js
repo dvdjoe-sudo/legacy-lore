@@ -8,7 +8,7 @@
 'use strict';
 const SECS=[['start','Starting nine'],['bench','Bench'],['rotation','Rotation'],['pen','Bullpen']];
 function slotScore(row,sec,slot){ if(!row) return null; let v;
-  if(sec==='start') v=row['v_'+slot]; else if(sec==='bench') v=slot==='BAT'?row.dhAPEX:row.total; else if(sec==='rotation') v=row.SPx; else v=row.RPx;
+  if(sec==='start') v=row['v_'+slot]; else if(sec==='bench') v=['BAT','BAT2','BAT3'].includes(slot)?row.dhAPEX:row.total; else if(sec==='rotation') v=row.SPx; else v=row.RPx;
   return (v===undefined||v===null||Number.isNaN(v))?null:v; }
 function where(o,n){ if(!n) return null; for(const [sec] of SECS) for(const [s,x] of Object.entries(o[sec]||{})) if(x===n) return s; return null; }
 function names26(o){ const s=new Set(); for(const [sec] of SECS) for(const x of Object.values(o[sec]||{})) if(x) s.add(x); return s; }
