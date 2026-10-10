@@ -39,13 +39,6 @@ function zs(arr){ const n=arr.length, m=npSum(arr)/n; const v=npSum(arr.map(x=>(
 function sortBy(arr,keys,asc){ keys=[].concat(keys); const A=keys.map((k,i)=>Array.isArray(asc)?asc[i]:!!asc);
   return arr.map((r,i)=>[r,i]).sort((x,y)=>{ for(let k=0;k<keys.length;k++){ const a=x[0][keys[k]], b=y[0][keys[k]]; const an=Number.isNaN(a), bn=Number.isNaN(b); if(an||bn){ if(an&&bn) continue; return an?1:-1; } if(a!==b) return A[k]?(a<b?-1:1):(a>b?-1:1);} return x[1]-y[1]; }).map(x=>x[0]); }
 function prep(rows){ return rows.map(r=>{const o={}; for(const k in r) o[k]=(r[k]===null?NaN:r[k]); return o;}); }
-function longQualification(team,p){
- const w=team.workload?.[p.id]||root.LL_WORKLOAD?.[team.code]?.[p.id];
- if(!w||w.qualifyingSeasons<3||w.reliefIP<100) return {ok:false,type:null,workload:w||null};
- const native=!!p.rp_ok&&w.reliefG>0&&w.reliefIP/w.reliefG>=1.5;
- const sp6=!!p.sp_ok&&w.starterIP>=300;
- return {ok:native||sp6,type:native?'LONG':sp6?'LONG/SP6':null,native,sp6,workload:w};
-}
 function reviewPins(team,raw){
  raw=raw||{}; const pins={roster:{},staff:{},lineup:{},rules:raw.rules||{},acknowledged:raw.acknowledged||[]},warnings=[];
  const H=new Map(team.hitters.map(h=>[h.name,h])),P=new Map(team.pitchers.map(p=>[p.name,p]));
@@ -71,8 +64,7 @@ function reviewPins(team,raw){
    else if(slot==='UTIL-IF'&&row.ss_rf150<SS_GLOVE_FLOOR) message='Utility glove threshold violation';
   } else if(kind==='staff'){
    if(slot==='ROT'&&!row.sp_ok) message='Starter eligibility violation';
-   else if(slot==='LONG'&&!longQualification(team,row).ok) message='LONG workload or historical role-fit violation';
-   else if(slot!=='ROT'&&slot!=='LONG'&&!row.rp_ok) message='Reliever eligibility violation';
+   else if(slot!=='ROT'&&!row.rp_ok) message='Reliever eligibility violation';
    else if(slot==='LHS'&&row.throws!=='L') message='Lefty specialist role violation';
    else if(slot==='CL'&&row.cl_ok===false) message='Closer historical usage violation';
   }
@@ -81,10 +73,9 @@ function reviewPins(team,raw){
  }
  return {pins,warnings};
 }
-// Approved preview policy: assign by most franchise games; retain full franchise scores.
+// Never estimate city APEX from rounded summaries or prorate franchise scores.
 function withCity(team,city){
- const ids=new Set(city.ids),hitters=team.hitters.filter(h=>ids.has(h.id)),pitchers=team.pitchers.filter(p=>ids.has(p.id));
- const t=Object.assign({},team,{city,name:city.name,history:city.city+' ('+city.years.join('–')+')',hitters,pitchers,py:null,py_bm:null,pool:[hitters.length,pitchers.length],thinCity:true,cityUnavailable:false,statisticsScope:'full-franchise',cityAssignment:'most-franchise-games'});
+ const t=Object.assign({},team,{city,name:city.name,history:city.city+' ('+city.years.join('–')+')',hitters:[],pitchers:[],hseasons:{},pseasons:{},bm:{h:{},p:{}},py:null,py_bm:null,pool:[0,0],thinCity:true,cityUnavailable:true});
  delete t._S;delete t._P;delete t._bmT; return t;
 }
 // ---------- engine ----------
@@ -151,9 +142,7 @@ function build(team,pins){
   }
   for(const p of POS){ const h=start[p]; if(!h) continue; const mp=most_played(h);
     guard_log.push(`${p}: ${h.name} - ${trunc(gpos(h,p))} of ${trunc(h.G_team)} franchise G (${f0(100*gpos(h,p)/Math.max(h.G_team,1))}%) at ${(p==='LF'||p==='RF')?'LF/RF':p}; most-played ${mp==='LF'?'LF/RF':mp}`+((p in pinned_start)?' (pinned)':'')); }
-  const rawTeamValue=pySum(POS9.filter(p=>start[p]).map(p=>start[p]['v_'+p]));
-  const TEAM_RUNS=Number.isFinite(rawTeamValue)?rawTeamValue:null;
-  if(TEAM_RUNS===null) warnings.push({kind:'value',name:'Starting nine',slot:'VALUE',message:'Team value unavailable: an acknowledged position exception has no approved score at that position. The player choice is preserved; no score is estimated.',informational:true});
+  const TEAM_RUNS=pySum(POS9.filter(p=>start[p]).map(p=>start[p]['v_'+p]));
   const tie_log=[];
   { const lf=start.LF, rf=start.RF; if(lf&&rf&&!('LF' in pinned_start)&&!('RF' in pinned_start)&&lf.g_RF+rf.g_LF>lf.g_LF+rf.g_RF){ start.LF=rf; start.RF=lf; } }
   const used=new Set(Object.values(start).filter(Boolean).map(h=>h.name)); for(const n of pin_names) used.add(n);
@@ -300,28 +289,8 @@ function build(team,pins){
   for(const k of ['CL','SU1','SU2']){ if(roles[k]) continue; if(fi<oFree.length){ roles[k]=oFree[fi++]; } }
   let left=oFree.slice(fi).filter(r=>!pinnedRoleNames.has(r.name));
   if(!roles.LHS){ const lhs=sortBy(left.filter(r=>r.lefty),'Kpct',false); if(lhs.length){ roles.LHS=lhs[0]; left=left.filter(r=>r.name!==roles.LHS.name); } else pen_log.push('No LHS role: both bullpen lefties already hold CL/SU1/SU2 (30-team step 2; same as app/engine.js)'); }
-  if(!roles.LONG){
-    const native=left.filter(r=>longQualification(team,r).type==='LONG');
-    const swing=left.filter(r=>longQualification(team,r).type==='LONG/SP6');
-    let chosen=sortBy(native,'RPx',false)[0]||sortBy(swing,'SPx',false)[0];
-    if(!chosen){
-      const occupied=new Set([...rot,...pen].map(r=>r.id));
-      const available=pitchersAvailable.filter(r=>!occupied.has(r.id)&&!PIN_ROT.includes(r.name)&&!PIN_PEN.includes(r.name));
-      const emergency=sortBy(available.filter(r=>longQualification(team,r).sp6),'SPx',false)[0];
-      const reliever=sortBy(available.filter(r=>longQualification(team,r).type==='LONG'),'RPx',false)[0];
-      const candidate=emergency||reliever;
-      const out_=sortBy(left.filter(r=>!PIN_PEN.includes(r.name)),'RPx',true)[0];
-      if(candidate&&(pen.length<7||out_)){
-        chosen=deco(candidate);
-        if(pen.length>=7){pen=pen.filter(r=>r.id!==out_.id);left=left.filter(r=>r.id!==out_.id);}
-        pen.push(chosen);applyPenQ(pen);
-        pen_log.push(`LONG qualification: ${chosen.name} (${longQualification(team,chosen).type}) ${out_?'replaces '+out_.name:'fills a bullpen vacancy'}; rotation, closer, setup, specialist and manual assignments protected`);
-      }
-    }
-    if(chosen){roles.LONG=chosen;left=left.filter(r=>r.id!==chosen.id);}
-  }
-  if(roles.LONG){const q=longQualification(team,roles.LONG);if(q.ok)pen_log.push(`${q.type}: ${roles.LONG.name}; ${q.workload.qualifyingSeasons} qualifying franchise seasons, ${f1(q.workload.starterIP)} starter IP, ${f1(q.workload.reliefIP)} relief IP; ${q.type==='LONG/SP6'?'eligible starter outside the rotation':'historical relief workload >= 1.5 IP per relief appearance'}`);}
-  else {if(!gaps.includes('LONG'))gaps.push('LONG');warnings.push({kind:'qualification',name:'LONG / SP6',slot:'LONG',message:'No qualified long reliever available without displacing a protected assignment. LONG requires three qualifying franchise seasons, 100 relief IP and long-relief usage (1.5 relief IP per appearance), or an eligible starter outside the rotation with 300 starter IP and 100 relief IP.',informational:true});}
+  if(!roles.LONG){ const lng=sortBy(left,'ip_per_app',false); if(lng.length){ roles.LONG=lng[0]; left=left.filter(r=>r.name!==roles.LONG.name); } }
+  warnings.push({kind:'qualification',name:roles.LONG?.name||'LONG / SP6',slot:'LONG',message:'LONG / SP6 qualification unavailable: approved algorithm and complete source inputs have not been recovered. Existing LONG label is retained without certification; no new SP6 assignment is made.',structural:true,acknowledged:false,informational:true});
   let midI=1; sortBy(left,'RPx',false).forEach(r=>{ while(roles['MID'+midI]) midI++; roles['MID'+midI]=r; midI++; });
   // lineup
   const L=POS9.filter(p=>start[p]).map(p=>Object.assign({},start[p],{slot_pos:p}));
@@ -381,6 +350,6 @@ function withBM(team){
   const t=Object.assign({},team,{hitters,pitchers,py:team.py_bm,bmOn:true,base:team}); delete t._S; delete t._P; delete t._bmT;
   Object.defineProperty(team,'_bmT',{value:t,enumerable:false,writable:true}); return t;
 }
-const API={build,fmt,POS,POS9,POSADJ,withBM,withCity,reviewPins,longQualification};
+const API={build,fmt,POS,POS9,POSADJ,withBM,withCity,reviewPins};
 if(typeof module!=='undefined'&&module.exports) module.exports=API; else root.LLEngine=API;
 })(typeof window!=='undefined'?window:globalThis);

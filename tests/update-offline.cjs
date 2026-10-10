@@ -1,0 +1,4 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+let html=fs.readFileSync('download/legacy_lore.html','utf8');
+for(const file of ['engine.js','app.js']){const source=fs.readFileSync(file,'utf8'),start=file==='engine.js'?'/* Legacy Lore clubhouse engine':'/* Legacy Lore Clubhouse v1.9';let replaced=0;html=html.replace(/<script[^>]*>([\s\S]*?)<\/script>/g,(full,body)=>{if(!body.trimStart().startsWith(start))return full;replaced++;return '<script>\n'+source+'\n</script>';});assert.equal(replaced,1,file+' inline script');}
+const index=fs.readFileSync('data/ll_index.js','utf8').match(/index:"([^"]+)"/)[1];let replaced=0;html=html.replace(/(window\.LL_PACK=\{format:"ll-pack-1",index:")[^"]+("\s*,)/g,(_,a,b)=>{replaced++;return a+index+b;});assert.equal(replaced,1,'inline packed index');fs.writeFileSync('download/legacy_lore.html',html);

@@ -7,7 +7,7 @@ const APP_UI='v1.9';   // app UI version (data/app_version from export_app_data.
 const CMP=window.LLCompare, CHG=window.LL_CHANGES||null;
 // v1.9: the engine writes "pinned by Joseph" into fan-override receipts (kept for JS == Python parity); the UI shows it neutrally for every user
 const neutral=s=>String(s==null?'':s).replace(/pinned by Joseph/g,'pinned by you');
-const POS=E.POS, POS9=E.POS9, f1=x=>E.fmt(x,1), f0=x=>E.fmt(x,0), p1=x=>E.fmt(x,1,true), f3=x=>E.fmt(x,3);
+const POS=E.POS, POS9=E.POS9, f1=x=>x===null||x===undefined||Number.isNaN(x)?'N/A':E.fmt(x,1), f0=x=>E.fmt(x,0), p1=x=>x===null||x===undefined||Number.isNaN(x)?'N/A':E.fmt(x,1,true), f3=x=>E.fmt(x,3);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>v===null||v===undefined||Number.isNaN(v)?null:v;
 const fx=(v,d=1)=>num(v)===null?'–':E.fmt(v,d);
@@ -41,7 +41,7 @@ let BMON=(()=>{ try{ return localStorage.getItem(BMKEY)==='1'; }catch(e){ return
 function setBM(on){ BMON=!!on; try{ localStorage.setItem(BMKEY,BMON?'1':'0'); }catch(e){} }
 const teamFor=t=>BMON?E.withBM(t):t;
 const engLabel=()=>BMON?D.bm.engine:D.version;
-// ---------- city split (v1.7): 50.1% franchise games → one city; full career stats travel with the player ----------
+// Preview: city pools retain full franchise scores; assignment uses most franchise games.
 const citiesFor=t=>(window.LL_CITIES&&LL_CITIES[t.code]&&LL_CITIES[t.code].cities)||[];
 const ckey=k=>'ll_city_v1_'+k;
 const loadCity=k=>{ try{ return localStorage.getItem(ckey(k))||''; }catch(e){ return ''; } };
@@ -49,35 +49,27 @@ const saveCity=(k,v)=>{ try{ if(v) localStorage.setItem(ckey(k),v); else localSt
 function withCity(t0){
   const cities=citiesFor(t0); const ck=loadCity(t0.key); const city=cities.find(c=>c.key===ck);
   if(!city) return t0;
-  const ids=new Set(city.ids);
-  const hitters=t0.hitters.filter(h=>ids.has(h.id));
-  const pitchers=t0.pitchers.filter(p=>ids.has(p.id));
-  const t=Object.assign({},t0,{hitters,pitchers,city,name:city.name,history:`${city.city} (${city.years[0]}–${city.years[1]}, ${city.seasons} seasons)`,pool:[hitters.length,pitchers.length],thin:hitters.length<(D.thin_n||110)||pitchers.length<(D.thin_n||110),thinCity:true});
-  delete t._S; delete t._P; delete t._bmT;
+  const t=E.withCity(t0,city);
   return t;
 }
 // ---------- pins ----------
 const pkey=k=>'ll_pins_v1_'+k;
 function loadPins(k){ try{ return JSON.parse(localStorage.getItem(pkey(k))||'{}'); }catch(e){ return {}; } }
 function savePins(k,p){ try{ localStorage.setItem(pkey(k),JSON.stringify(p)); }catch(e){} }
-function cleanPins(t,raw){ const P={roster:{},lineup:{},staff:{},rules:{}}; const dropped=[];
-  const H=new Set(t.hitters.map(h=>h.name)), PP=new Set(t.pitchers.map(p=>p.name));
-  const seen={}; for(const [n,s] of Object.entries(raw.roster||{})){ if(!H.has(n)||!(POS9.includes(s)||BENCH_SLOTS.includes(s))){dropped.push(n);continue;} if(seen[s]) delete P.roster[seen[s]]; seen[s]=n; P.roster[n]=s; }
-  const PEN_ROLES=new Set(['CL','SU1','SU2','LHS','LONG','MID1','MID2']);
-  let nr=0,np=0; const roleSeen={}; for(const [n,s] of Object.entries(raw.staff||{})){ if(!PP.has(n)) {dropped.push(n);continue;}
-    if(s==='ROT'&&nr<5){P.staff[n]=s;nr++;}
-    else if((s==='PEN'||PEN_ROLES.has(s))&&np<7){ if(PEN_ROLES.has(s)){ if(roleSeen[s]){ delete P.staff[roleSeen[s]]; } roleSeen[s]=n; } P.staff[n]=s;np++; }
-    else dropped.push(n); }
-  const r=raw.rules||{}; if(r.dh_defense_first===false) P.rules.dh_defense_first=false; if(r.primary_pos_guard===false) P.rules.primary_pos_guard=false;
-  const base={roster:P.roster,staff:P.staff,rules:P.rules}; const nine=new Set(Object.values(E.build(t,base).start));
-  const ls={}; for(const [n,k] of Object.entries(raw.lineup||{})){ if(!nine.has(n)||!(k>=1&&k<=9)||ls[k]){dropped.push(n+' (lineup)');continue;} ls[k]=n; P.lineup[n]=k; }
-  const out={}; for(const k of ['roster','lineup','staff','rules']) if(Object.keys(P[k]).length) out[k]=P[k];
-  return {pins:out,dropped}; }
+function cleanPins(t,raw){ return {pins:raw||{},dropped:[]}; }
 const pinCount=p=>['roster','lineup','staff'].reduce((a,k)=>a+Object.keys(p[k]||{}).length,0)+Object.keys(p.rules||{}).length;
 // ---------- state ----------
 let CUR=null; // {t, raw, pins, dropped, o}
 function compute(k){ const t0=TEAM(k), t=teamFor(withCity(t0)); const raw=loadPins(k); const c=cleanPins(t,raw); const o=E.build(t,c.pins); CUR={t,t0,raw,pins:c.pins,dropped:c.dropped,o,city:t.city||null}; return CUR; }
-function setPins(fn){ const k=CUR.t.key; const p=JSON.parse(JSON.stringify(CUR.pins)); fn(p); for(const s of ['roster','lineup','staff','rules']) if(p[s]&&!Object.keys(p[s]).length) delete p[s]; savePins(k,p); compute(k); render(); }
+function setPins(fn){ const k=CUR.t.key; const p=JSON.parse(JSON.stringify(CUR.raw)); fn(p);
+  const review=E.build(CUR.t,p);
+  const issues=review.warnings.filter(w=>!w.acknowledged&&!w.informational);
+  const replaced=['roster','staff','lineup'].flatMap(kind=>Object.entries(CUR.raw[kind]||{}).filter(([n,v])=>p[kind]?.[n]!==v&&Object.entries(p[kind]||{}).some(([m,w])=>m!==n&&w===v)).map(([n,v])=>n+' ('+v+')'));
+  if(issues.length||replaced.length){
+    const message=issues.map(w=>w.name+' → '+w.slot+': '+w.message+(w.structural?' (will be rejected)':' (exception)')).concat(replaced.length?['Existing assignments removed/replaced: '+replaced.join(', ')]:[]).join('\n');
+    if(!window.confirm(message+'\nExplicitly acknowledge these changes and exceptions?')){render();return false;}
+    p.acknowledged=[...(p.acknowledged||[]),...issues.filter(w=>!w.structural).map(w=>w.key)];
+  } for(const s of ['roster','lineup','staff','rules']) if(p[s]&&!Object.keys(p[s]).length) delete p[s]; savePins(k,p); compute(k); render(); return true; }
 // ---------- helpers ----------
 const hitter=n=>CUR.t._S.find(h=>h.name===n), pitcher=n=>CUR.t._P.find(p=>p.name===n);
 function slotOf(n){ const o=CUR.o; for(const [s,x] of Object.entries(o.start)) if(x===n) return s; for(const [s,x] of Object.entries(o.bench)) if(x===n) return s;
@@ -116,18 +108,18 @@ function vHome(){ CUR=null; nav('home');
   ${bmSwitch()}${GROUPS.map(([lg,dv])=>`<h2 class="grp">${lg==='AL'?'American':'National'} League ${dv}</h2><div class="homegrid">${byGroup(lg,dv).map(t=>{ const o=homeVals(t); return `<a class="teamcard" href="#/${t.key}" style="background:linear-gradient(135deg,${t.colors[0]},${t.colors[0]} 60%,${t.colors[1]})"><h2>${esc(t.name)}</h2>
    <p class="small">${esc(t.history)} · since ${t.since} (${t.seasons} seasons)</p><p>${t.pool[0]} hitters · ${t.pool[1]} pitchers in the pool ${thinTag(t)}</p><p>SP1 ${esc(o.rotation.SP1)} · CL ${esc(o.pen.CL)}</p><p>Nine-starter value ${f1(o.team_runs)} W · ${o.close_calls.length} Close Call${o.close_calls.length===1?'':'s'}</p></a>`;}).join('')}</div>`).join('')}
   ${verifyBanner()}</div>`; }
-function verifyBanner(){ if(!verified()) return `<div class="banner vb">Self-check running: rebuilding every roster in the browser and comparing with the Python engine (${VDONE} of ${D.teams.length} teams done)…</div>`; const bad=Object.entries(VERIFY).filter(([k,v])=>v.length).map(([k,v])=>[k,v]).concat(Object.entries(VERIFY_BM).filter(([k,v])=>v.length).map(([k,v])=>[k+' (Big Moments)',v]));
-  return bad.length?`<div class="banner bad vb">JS engine differs from the Python engine output for: ${bad.map(([k,v])=>esc(k)+' ('+esc(v.join(', '))+')').join('; ')}</div>`
-   :`<div class="banner ok vb">Self-check passed: with no pins, the in-app engine rebuilds all ${D.teams.length} rosters and every receipt exactly as the Python engine did, both for ${esc(D.version)} (default) and with the Big Moments option on.</div>`; }
+function verifyBanner(){ if(!verified()) return `<div class="banner vb">Self-check running: rebuilding every roster in the browser and comparing with the corrected selection reference (${VDONE} of ${D.teams.length} teams done)…</div>`; const bad=Object.entries(VERIFY).filter(([k,v])=>v.length).map(([k,v])=>[k,v]).concat(Object.entries(VERIFY_BM).filter(([k,v])=>v.length).map(([k,v])=>[k+' (Big Moments)',v]));
+  return bad.length?`<div class="banner bad vb">JS engine differs from the corrected selection reference for: ${bad.map(([k,v])=>esc(k)+' ('+esc(v.join(', '))+')').join('; ')}</div>`
+   :`<div class="banner ok vb">Self-check passed: with no pins, the in-app engine rebuilds all ${D.teams.length} rosters and every receipt exactly as the corrected selection reference, both for ${esc(D.version)} (default) and with the Big Moments option on.</div>`; }
 function bmSwitch(){ return `<div class="bmswitch"><label><input type="checkbox" data-act="bm" ${BMON?'checked':''}> <b>Big Moments</b></label> <span class="small muted">${BMON?'ON: scores include the October and Clutch bonuses (rules BM1–BM5), and rosters are rebuilt.':'OFF (default): pure engine '+esc(D.version)+'. Turn on to add October and Clutch bonuses to the scores.'}</span></div>`; }
-function bmBanner(){ if(!BMON) return ''; const a=E.build(CUR.t0,{}), b=E.build(CUR.t,{}); const ch=[];
+function bmBanner(){ if(!BMON||CUR.t.cityUnavailable) return ''; const a=E.build(CUR.city?E.withCity(CUR.t0,CUR.city):CUR.t0,{}), b=E.build(CUR.t,{}); const ch=[];
   for(const sec of ['start','bench','rotation','pen']) for(const s of Object.keys(a[sec])) if(a[sec][s]!==b[sec][s]) ch.push(`${s}: ${a[sec][s]} → ${b[sec][s]}`);
   return `<div class="banner bm"><b>Big Moments ON</b>: October (positive-only, cap min(${D.bm.caps.oct_w.toFixed(1)} W, ${Math.round(D.bm.caps.oct_pct*100)}% of APEX)) + two-way Clutch (shrunk, cap ±${D.bm.caps.cl_w.toFixed(1)} W / ${Math.round(D.bm.caps.cl_pct*100)}%) are added to every score. Engine picks vs default ${esc(D.version)}: ${ch.length?ch.map(x=>`<span class="pill">${esc(x)}</span>`).join(' '):'no roster or role changes'}; nine-starter value ${f1(b.team_runs)} W vs ${f1(a.team_runs)} W.</div>`; }
-function pinBanner(){ const p=CUR.pins; const n=pinCount(p); const dr=CUR.dropped.length?`<div class="small muted">Ignored stale pins: ${esc(CUR.dropped.join(', '))}</div>`:'';
+function pinBanner(){ if(CUR.t.cityUnavailable)return '<div class="banner">Saved overrides are retained; city assignments cannot be evaluated until city-scoped data is recovered.</div>'; const p=CUR.pins; const n=pinCount(p); const dr=CUR.dropped.length?`<div class="small muted">Ignored stale pins: ${esc(CUR.dropped.join(', '))}</div>`:'';
   if(!n) return dr?`<div class="banner">${dr}</div>`:'';
   const items=[]; for(const [a,s] of Object.entries(p.roster||{})) items.push(`${esc(a)} → ${esc(s)}`); for(const [a,s] of Object.entries(p.lineup||{})) items.push(`${esc(a)} bats #${s}`);
   for(const [a,s] of Object.entries(p.staff||{})) items.push(`${esc(a)} → ${s==='ROT'?'rotation':s==='PEN'?'bullpen':s}`); if(p.rules&&p.rules.dh_defense_first===false) items.push('DH glove rule OFF'); if(p.rules&&p.rules.primary_pos_guard===false) items.push('start guard OFF');
-  const base=E.build(CUR.t,{}); const dv=CUR.o.team_runs-base.team_runs;
+  const base=E.build(CUR.t,{}); const dv=CUR.o.team_runs===null?null:CUR.o.team_runs-base.team_runs;
   return `<div class="banner"><b>Fan override active</b> (${n}): ${items.map(x=>`<span class="pill">${x}</span>`).join(' ')}<br>
    Nine-starter value ${f1(CUR.o.team_runs)} W vs engine pick ${f1(base.team_runs)} W (${p1(dv)} W). Everything else rebuilt around the pins.
    <div class="tools" style="margin:6px 0 0"><a class="btn p" href="#/${CUR.t0.key}/compare">Compare with the app's 26</a><button class="btn" data-act="clear">Clear all pins</button><button class="btn" data-act="pinsjson">Show pins file (for engine_v5.py)</button></div>${dr}</div>`; }
@@ -138,7 +130,14 @@ function field(){ const o=CUR.o;
   <p class="small muted" style="text-align:center">Tap a position to swap (shows win cost). Tap a name in the tables for the full card.</p>`; }
 function cityPicker(t0){ const cities=citiesFor(t0); if(cities.length<2) return ''; const cur=loadCity(t0.key);
   return `<label class="small">City <select id="citypick" data-act="city"><option value="" ${!cur?'selected':''}>Full franchise</option>${cities.map(c=>`<option value="${esc(c.key)}" ${cur===c.key?'selected':''}>${esc(c.city)} (${c.years[0]}–${c.years[1]})</option>`).join('')}</select></label>`; }
-function gapsBanner(){ const g=CUR.o.gaps; if(!g||!g.length) return ''; return `<div class="banner">Thin city pool: unfilled slots ${g.map(esc).join(', ')}. Player needs 50.1%+ of franchise games in this city; all of his franchise stats come with him.</div>`; }
+function gapsBanner(){
+ const messages=[];
+ if(CUR.city) messages.push('Full franchise stats; assigned to the city with the most franchise games. Includes all APEX and Big Moments components.');
+ if(CUR.t.cityUnavailable) messages.push('City roster unavailable: this repository has no city-specific APEX score tables or complete scoring inputs. Full-franchise statistics are not used as city statistics.');
+ else if(CUR.o.gaps?.length) messages.push('Unfilled roster roles: '+CUR.o.gaps.join(', '));
+ for(const w of CUR.o.warnings||[]) messages.push(w.name+' → '+w.slot+': '+w.message+(w.informational?'':w.acknowledged?' (exception explicitly acknowledged)':' (assignment rejected; acknowledgment required for exceptions)'));
+ return messages.length?'<div class="banner">'+messages.map(esc).join('<br>')+'</div>':'';
+}
 function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; const ob=o._objs;
   const logBy=s=>o.log.find(l=>l.slot===s);
   const lineup=o.lineup.map(l=>{ const h=hitter(l.name); const lg=logBy(l.pos);
@@ -146,7 +145,7 @@ function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; c
      <td class="n">${obp(l.OBP)}</td><td class="n hide-s">${obp(l.SLG)}</td><td class="n hide-s">${l.OBPplus}</td><td class="n hide-s">${l.ISOplus}</td><td class="n">${fx(l.bat600)}</td><td class="n">${f1(h['v_'+l.pos])}</td></tr>`;}).join('');
   const benchRows=Object.entries(o.bench).map(([s,n])=>{ const h=hitter(n); const lg=logBy(s); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="h" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(h.pos)}</span>${pinTag(n)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(lg?neutral(lg.fit):'')}</div></td><td class="n">${f1(h.total)}</td><td class="n hide-s">#${h.total_rank}</td></tr>`;}).join('');
   const rotRows=Object.entries(o.rotation).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.SPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${Math.round(p.IP)}</td></tr>`;}).join('');
-  const penRows=Object.entries(o.pen).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.RPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.KBB,2)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${p.SV}</td></tr>`;}).join('');
+  const penRows=Object.entries(o.pen).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s==='LONG'&&E.longQualification(t,p).sp6?'LONG / SP6':s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.RPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.KBB,2)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${p.SV}</td></tr>`;}).join('');
   const cc=o.close_calls.length?o.close_calls.map(c=>`<li><b>${esc(c.slot)}</b>: ${nm(c.pick,hitter(c.pick)?'h':'p')} ${c.pick_v} vs ${nm(c.alt,hitter(c.alt)?'h':'p')} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</li>`).join(''):'<li class="muted">No Close Calls on this roster.</li>';
   const on26=new Set([...Object.values(o.start),...Object.values(o.bench)]);
   const omitH=E_sorted(t._S.filter(h=>!on26.has(h.name)),'total').slice(0,8).map(h=>{ let best=null; for(const p of POS9){ if(!startOk(h,p)) continue; const v=h['v_'+p]; if(Number.isNaN(v)) continue; if(!best||v>best[1]) best=[p,v]; }
@@ -169,11 +168,11 @@ function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; c
    </div>`; }
 // ---------- v1.9 Compare: the app's default 26 vs your build (compare.js does the math; nothing from the Story Bible / Lore is read here) ----------
 let CMP_ONLY=false;
-function compareFor(){ const t0=CUR.t0, base=E.build(t0,{}); return Object.assign(CMP.compare(t0,base,CUR.o,CUR.pins),{base}); }
+function compareFor(){ if(CUR.t.cityUnavailable)return {unavailable:true,rows:[],diffs:[],nine_app:null,nine_mine:null}; const t0=CUR.t0, base=E.build(t0,{}); return Object.assign(CMP.compare(t0,base,CUR.o,CUR.pins),{base}); }
 const wgap=g=>g===null||g===undefined?'':`${g>=0?'+':'−'}${f1(Math.abs(g))} W`;
-function buildReasons(){ const r=[]; if(CUR.city) r.push(`${esc(CUR.city.city)} only (${CUR.city.years[0]}–${CUR.city.years[1]})`);
+function buildReasons(){ const r=[]; if(CUR.city) r.push(`${esc(CUR.city.city)} assignment · full franchise statistics`);
   const n=pinCount(CUR.pins); if(n) r.push(`${n} pin${n===1?'':'s'} / swap${n===1?'':'s'}`); if(BMON) r.push('Big Moments ON'); return r; }
-function vCompare(k){ compute(k); nav('cmp'); const t=CUR.t, t0=CUR.t0; const C=compareFor();
+function vCompare(k){ compute(k); nav('cmp'); const t=CUR.t, t0=CUR.t0; if(t.cityUnavailable)return '<div class="panel">'+cityPicker(t0)+gapsBanner()+'</div>'; const C=compareFor();
   const nmx=n=>n?(hitter(n)||pitcher(n)?nm(n,hitter(n)?'h':'p'):`<span class="name">${esc(n)}</span>`):'<span class="muted">(empty)</span>';
   const why=buildReasons();
   const flags=C.diffs.map(r=>{ const gap=r.gap===null?'':`<span class="tag ${r.gap<0?'cost':'ok'}">${wgap(r.gap)}${r.pct!==null?` · ${f1(r.pct)}%`:''}</span>`;
@@ -185,10 +184,10 @@ function vCompare(k){ compute(k); nav('cmp'); const t=CUR.t, t0=CUR.t0; const C=
     if(r.label!==last){ body+=`<tr class="sec"><td colspan="3">${esc(r.label)}</td></tr>`; last=r.label; }
     body+=`<tr class="${r.diff?'diff':'same'}" data-slot="${esc(r.slot)}"><td class="cs"><span class="pos">${esc(r.slot)}</span></td><td class="ca">${nmx(r.app)}${r.av!==null?`<div class="small muted">${f1(r.av)}</div>`:''}</td><td class="cm">${nmx(r.mine)}${r.pinned?'<span class="tag pin">pin</span>':''}<div class="small muted">${r.bv!==null?f1(r.bv):''}${r.diff&&r.gap!==null?` · ${wgap(r.gap)}`:''}</div></td></tr>`; }
   if(!body) body='<tr><td colspan="3" class="muted">No differences to show.</td></tr>';
-  const dn=C.nine_mine-C.nine_app;
+  const dn=C.nine_mine===null||C.nine_app===null?null:C.nine_mine-C.nine_app;
   return `<div class="panel cmpview"><div class="teamhead"><div><h1>${esc(t0.name)} Compare</h1><div class="meta">App default: full franchise, no pins, engine ${esc(D.version)} (Big Moments off) · Your build: ${why.length?why.join(' · '):'no changes'}</div></div>
     <div class="tools">${cityPicker(t0)}<a class="btn" href="#/${t0.key}">Back to Clubhouse</a></div></div>
-    <div class="cmpsum"><div class="${C.n?'hot':''}"><b>${C.n}</b><span>of ${C.slots} slots differ</span></div><div><b>${C.added.length}</b><span>player${C.added.length===1?'':'s'} not on the app's 26</span></div><div><b>${wgap(dn)||'0.0 W'}</b><span>nine-starter value (${f1(C.nine_mine)} vs ${f1(C.nine_app)})</span></div></div>
+    <div class="cmpsum"><div class="${C.n?'hot':''}"><b>${C.n}</b><span>of ${C.slots} slots differ</span></div><div><b>${C.added.length}</b><span>player${C.added.length===1?'':'s'} not on the app's 26</span></div><div><b>${dn===null?'N/A':(dn===null?'N/A':(dn===null?'N/A':(wgap(dn)||'0.0 W')))}</b><span>nine-starter value (${f1(C.nine_mine)} vs ${f1(C.nine_app)})</span></div></div>
     <div class="card dvcard"><h3>Divergence flags <span class="tag ${C.n?'cost':'ok'}">${C.n}</span></h3>${C.n?`<ol class="dvlist">${flags}</ol><p class="small muted">Gap = your pick's engine score at that slot minus the app pick's (W), and your pick as a % of his. A Close Call tag means the engine itself had your man within 2% (or the hand rule margin) of its pick. Scores are the default engine's (Big Moments off), so the gap measures the swap only.</p>`:`<p>Your build matches the app's 26 slot for slot. Tap a position on the <a href="#/${t0.key}">Clubhouse</a> diamond (or any slot button) to swap, or pick a city; differences show up here.</p>`}</div>
     <div class="card"><div class="cmphead"><h3 style="margin:0">Side by side</h3><label class="small"><input type="checkbox" data-act="cmponly" ${CMP_ONLY?'checked':''}> Only differences</label></div>
     <table class="cmp"><thead><tr><th>Slot</th><th>App default</th><th>Your build</th></tr></thead><tbody>${body}</tbody></table>
@@ -259,7 +258,7 @@ function vAbout(){ CUR=null; nav('about');
 function clonePins(extra){ const p=JSON.parse(JSON.stringify(CUR.pins||{})); p.roster=p.roster||{}; p.staff=p.staff||{}; p.lineup=p.lineup||{}; p.rules=p.rules||{}; if(extra) extra(p); return p; }
 function applyRosterPin(p,name,slot){ for(const [m,s] of Object.entries(p.roster)) if(s===slot||m===name) delete p.roster[m]; if(slot) p.roster[name]=slot; }
 function applyStaffPin(p,name,slot){ for(const [m,s] of Object.entries(p.staff)) if(m===name||(slot&&slot!=='ROT'&&slot!=='PEN'&&s===slot)) delete p.staff[m]; if(slot) p.staff[name]=slot; }
-function winCost(pins){ try{ return CUR.o.team_runs-E.build(CUR.t,pins).team_runs; }catch(e){ return null; } }
+function winCost(pins){ try{ const after=E.build(CUR.t,pins).team_runs;return CUR.o.team_runs===null||after===null?null:CUR.o.team_runs-after; }catch(e){ return null; } }
 function swapCands(slot){
   const o=CUR.o, t=CUR.t, base=o.team_runs; const out=[];
   if(POS9.includes(slot)){
@@ -327,7 +326,7 @@ function card(kind,n){ if(!CUR) return; const t=CUR.t, o=CUR.o; let h=kind==='h'
     <div class="kv"><div><span>Combined (#${h.p_rank})</span><b>${f1(h.total)}</b></div><div><span>Starter${h.sp_ok?'':' (not eligible)'}</span><b>${f1(h.SPx)}</b></div><div><span>Reliever${h.rp_ok?'':' (not eligible)'}</span><b>${f1(h.RPx)}</b></div><div><span>Peak3 / Prime5 / Career</span><b style="font-size:15px">${f1(s.apex[0][0])} / ${f1(s.apex[0][1])} / ${f1(s.apex[0][2])}</b></div><div><span>Franchise APEX-R wins</span><b>${f1(h.c_wins)}</b></div><div><span>Runs prevented / replacement</span><b style="font-size:15px">${f0(h.c_prev)} / ${f0(h.c_rep)}</b></div></div>`;
     html+=bmCard('p',h);
     const lines=[...o.rot_log,...o.pen_log,...o.pit_tie_log].filter(x=>x.includes(n));
-    const role=slot?(slot.startsWith('SP')?`In the rotation (${slot}): top 5 by Starter score among Starter-eligible pitchers, then min 1 LHP and 1 RHP (90% swap if needed).`:`In the bullpen (${slot}): top 7 by Reliever score among Reliever-eligible pitchers, then a dedicated lefty specialist (closer does not count as the LHS); roles by quality index (0.5 Reliever + 0.5 ERA+, z-scores), LHS by K%, LONG by innings per game among those already in.`):'Not on the staff.';
+    const role=slot?(slot.startsWith('SP')?`In the rotation (${slot}): top 5 by Starter score among Starter-eligible pitchers, then min 1 LHP and 1 RHP (90% swap if needed).`:`In the bullpen (${slot}): top 7 by Reliever score among Reliever-eligible pitchers, then a dedicated lefty specialist (closer does not count as the LHS); roles by quality index (0.5 Reliever + 0.5 ERA+, z-scores), LHS by K%, LONG retains the existing innings-per-game label; LONG/SP6 qualification remains unverified pending recovery of the approved rule.`):'Not on the staff.';
     const pq=o.pen_q.find(x=>x.name===n);
     html+=`<h3>Receipt</h3><div class="receipt"><p>${esc(role)}</p>${pq?`<p>Quality index ${f3(pq.q)} (K/BB ${pq.KBB}, ERA+ ${pq.ERAplus}, IP per game ${pq.ip_per_app})</p>`:''}${lines.map(x=>`<p>${esc(x)}</p>`).join('')}${cc.map(c=>`<p><span class="tag cc">Close Call</span> ${esc(c.slot)}: ${esc(c.pick)} ${c.pick_v} vs ${esc(c.alt)} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</p>`).join('')}</div>`;
     html+=pinUI('p',n,h);
@@ -356,16 +355,17 @@ function pinUI(kind,n,h){ const p=CUR.pins;
   const cur=(p.staff||{})[n]||''; const roleOpts=['CL','SU1','SU2','LHS','LONG','MID1','MID2'];
   return `<h3>Fan override</h3><div class="tools"><label class="small">Pin to <select data-pin="staff" data-n="${esc(n)}"><option value="">(no pin)</option><option value="ROT" ${cur==='ROT'?'selected':''}>Rotation</option><option value="PEN" ${cur==='PEN'?'selected':''}>Bullpen</option>${roleOpts.map(r=>`<option value="${r}" ${cur===r?'selected':''}>${r}</option>`).join('')}</select></label></div><p class="small muted">Rotation / bullpen pins force that unit. A role pin (CL, SU1, …) forces the bullpen and that role; the rest rebuilds around him.</p>`; }
 // ---------- export ----------
-function rosterText(){ const t=CUR.t,o=CUR.o; const L=[`ALL-TIME ${t.name.toUpperCase()} – Legacy Lore Clubhouse (engine ${engLabel()})${pinCount(CUR.pins)?' – with fan override pins':''}`,'','LINEUP'];
+function rosterText(){ const t=CUR.t,o=CUR.o; if(t.cityUnavailable)return t.name+'\nCity-specific roster and all APEX components: unavailable. Approved city inputs and scoring pipeline must be recovered.'; const L=[`ALL-TIME ${t.name.toUpperCase()} – Legacy Lore Clubhouse (engine ${engLabel()})${pinCount(CUR.pins)?' – with fan override pins':''}`,...(CUR.city?['Full franchise stats; assigned to the city with the most franchise games.']:[]),'','LINEUP'];
   for(const l of o.lineup) L.push(`${l.slot}. ${l.name} ${l.pos}`); L.push('','BENCH'); for(const [s,n] of Object.entries(o.bench)) L.push(`${s}: ${n}`);
   L.push('','ROTATION'); for(const [s,n] of Object.entries(o.rotation)) L.push(`${s}: ${n}`); L.push('','BULLPEN'); for(const [s,n] of Object.entries(o.pen)) L.push(`${s}: ${n}`);
   if(o.close_calls.length){ L.push('','CLOSE CALLS'); for(const c of o.close_calls) L.push(`${c.slot}: ${c.pick} ${c.pick_v} vs ${c.alt} ${c.alt_v} (${c.pct}%)`); }
+  if(o.warnings?.length){L.push('','WARNINGS');for(const w of o.warnings)L.push(w.name+' / '+w.slot+': '+w.message+(w.acknowledged?' (explicitly acknowledged)':''));}
   return L.join('\n'); }
 function copy(txt,msg){ const done=()=>toast(msg||'Copied'); if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(txt).then(done,()=>fallback()); else fallback();
   function fallback(){ const a=document.createElement('textarea'); a.value=txt; document.body.appendChild(a); a.select(); try{document.execCommand('copy'); done();}catch(e){ prompt('Copy:',txt);} a.remove(); } }
 function toast(m){ let d=$('#toast'); if(!d){ d=document.createElement('div'); d.id='toast'; d.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d232b;color:#fff;padding:8px 14px;border-radius:8px;z-index:99;font-size:14px'; document.body.appendChild(d);} d.textContent=m; d.style.display='block'; clearTimeout(d._t); d._t=setTimeout(()=>d.style.display='none',1800); }
 function download(name,txt){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
-function foot(){ $('#foot').innerHTML=`Legacy Lore Clubhouse app ${esc(APP_UI)} · ${CHG?`<a href="javascript:void 0" data-act="changes">What changed</a> · `:''}${D.teams.length} franchises · engine ${esc(D.bm.engine)} (Big Moments ${BMON?'ON':'OFF'}) · data ${esc(D.exported)} · static build, works offline · ${!verified()?`self-check running (${VDONE}/${D.teams.length})`:allOk()?'JS engine = Python engine (no pins) ✓ · Big Moments ✓':'self-check FAILED'}`; }
+function foot(){ $('#foot').innerHTML=`Legacy Lore Clubhouse app ${esc(APP_UI)} · ${CHG?`<a href="javascript:void 0" data-act="changes">What changed</a> · `:''}${D.teams.length} franchises · engine ${esc(D.bm.engine)} (Big Moments ${BMON?'ON':'OFF'}) · data ${esc(D.exported)} · static build, works offline · ${!verified()?`self-check running (${VDONE}/${D.teams.length})`:allOk()?'Selection regression reference (no pins) ✓ · Big Moments ✓':'self-check FAILED'}`; }
 // ---------- router ----------
 let VIEW='';
 function render(){ const h=location.hash.replace(/^#\/?/,'').split('/'); const k=h[0]; let html;
@@ -391,7 +391,7 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]'); if(a){ const act=a.dataset.act;
     if(act==='changes'){ e.preventDefault(); changesSheet(); return; }
     if(act==='dopin'){ const kind=a.dataset.kind, n=a.dataset.n, slot=a.dataset.slot;
-      setPins(p=>{ if(kind==='roster'){ p.roster=p.roster||{}; applyRosterPin(p,n,slot); } else { p.staff=p.staff||{}; applyStaffPin(p,n,/^SP/.test(slot)?'ROT':slot); } });
+      const applied=setPins(p=>{ if(kind==='roster'){ p.roster=p.roster||{}; applyRosterPin(p,n,slot); } else { p.staff=p.staff||{}; applyStaffPin(p,n,/^SP/.test(slot)?'ROT':slot); } });
       $('#modal').hidden=true; toast('Pinned '+n+' to '+slot); return; }
     if(act==='clearslot'){ const slot=a.dataset.slot, kind=a.dataset.kind;
       setPins(p=>{ if(kind==='h'){ p.roster=p.roster||{}; for(const [m,s] of Object.entries(p.roster)) if(s===slot) delete p.roster[m]; }
@@ -400,17 +400,18 @@ document.addEventListener('click',e=>{
     if(a.tagName==='BUTTON'){
       if(act==='clear') setPins(p=>{ for(const k in p) delete p[k]; });
       if(act==='copy') copy(rosterText(),'Roster copied');
-      if(act==='export') download(`legacy_lore_${CUR.t.key}_${D.version}${BMON?'_bigmoments':''}.json`,JSON.stringify({team:CUR.t.name,engine:engLabel(),big_moments:BMON,pins:CUR.pins,start:CUR.o.start,bench:CUR.o.bench,rotation:CUR.o.rotation,pen:CUR.o.pen,lineup:CUR.o.lineup,close_calls:CUR.o.close_calls,log:CUR.o.log.map(l=>Object.assign({},l,{fit:neutral(l.fit)})),team_runs:CUR.o.team_runs},null,1));
+      if(act==='export') download(`legacy_lore_${CUR.t.key}_${D.version}${BMON?'_bigmoments':''}.json`,JSON.stringify({team:CUR.t.name,engine:engLabel(),big_moments:BMON,pins:CUR.pins,start:CUR.o.start,bench:CUR.o.bench,rotation:CUR.o.rotation,pen:CUR.o.pen,lineup:CUR.o.lineup,close_calls:CUR.o.close_calls,log:CUR.o.log.map(l=>Object.assign({},l,{fit:neutral(l.fit)})),team_runs:CUR.o.team_runs,city_statistics_available:!CUR.t.cityUnavailable,statistics_scope:CUR.city?'full-franchise':'full-franchise',city_assignment:CUR.city?'most-franchise-games':null,warnings:CUR.o.warnings||[]},null,1));
       if(act==='pinsjson') copy(JSON.stringify(CUR.pins),'Pins JSON copied (engine_v5.py pins file)');
       if(act==='copyrules') copy(D.rules,'Rules copied'); } }
   if(e.target.closest('.x')||e.target.id==='modal') $('#modal').hidden=true; });
 document.addEventListener('change',e=>{ const t=e.target;
   if(t.dataset.pin){ const n=t.dataset.n, v=t.value, kind=t.dataset.pin;
-    setPins(p=>{ p[kind]=p[kind]||{};
+    const applied=setPins(p=>{ p[kind]=p[kind]||{};
       if(kind==='roster'){ if(v) applyRosterPin(p,n,v); else delete p.roster[n]; }
       else if(kind==='staff'){ if(v) applyStaffPin(p,n,v); else delete p.staff[n]; }
       else if(kind==='lineup'){ if(v){ for(const [m,s] of Object.entries(p.lineup)) if(+s===+v) delete p.lineup[m]; p.lineup[n]=+v; } else delete p.lineup[n]; }
       else { if(v) p[kind][n]=v; else delete p[kind][n]; } });
+    if(applied===false)return;
     card(t.dataset.pin==='staff'?'p':'h',n); toast('Rebuilt with fan override'); }
   if(t.dataset.act==='bm'){ setBM(t.checked); if(CUR) compute(CUR.t0.key); render(); toast(BMON?'Big Moments ON: rosters rebuilt':'Big Moments OFF: engine '+D.version); return; }
   if(t.dataset.act==='cmponly'){ CMP_ONLY=t.checked; render(); return; }

@@ -32,7 +32,7 @@ function compare(t0,base,mine,pins){
         diffs.push(r); }
       rows.push(r); } }
   const A=names26(base), M=names26(mine);
-  const nine=o=>{ let s=0; for(const [p,n] of Object.entries(o.start||{})){ const v=slotScore(H.get(n),'start',p); if(v!==null) s+=v; } return s; };
+  const nine=o=>{ let s=0; for(const [p,n] of Object.entries(o.start||{})){ const v=slotScore(H.get(n),'start',p); if(v===null) return null; s+=v; } return s; };
   return {rows,diffs,n:diffs.length,slots:rows.length,
     added:[...M].filter(n=>!A.has(n)), dropped:[...A].filter(n=>!M.has(n)),
     nine_app:nine(base), nine_mine:nine(mine)}; }
