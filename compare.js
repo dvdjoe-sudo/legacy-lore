@@ -1,14 +1,14 @@
 /* Legacy Lore app v1.9 Compare mode: the app's default 26 vs the user's own build (pins / swaps, city split, Big Moments, rule switches).
    Pure functions, no DOM (app.js renders; tests/compare_test.js runs it in Node).
    App default = engine build of the FULL franchise with NO pins and Big Moments OFF = exactly the exported Python output (t.py).
-   Score gaps use those same default engine scores (value at the slot: v_<pos> for the nine, DH-Prod for DH/BAT, Total for C2/UTIL-IF/OF4/FLEX,
+   Score gaps use those same default engine scores (value at the slot: v_<pos> for the nine, Off-APEX for DH, DH-Prod for BAT, Total for C2/UTIL-IF/OF4/FLEX,
    Starter score for SP, Reliever score for the pen), so a gap measures the player swap, not a Big Moments or city re-score.
    Nothing here reads Story Bible / lore data: the builder and this comparison only ever see engine output + the user's own pins. */
 (function(root){
 'use strict';
 const SECS=[['start','Starting nine'],['bench','Bench'],['rotation','Rotation'],['pen','Bullpen']];
 function slotScore(row,sec,slot){ if(!row) return null; let v;
-  if(sec==='start') v=row['v_'+slot]; else if(sec==='bench') v=['BAT','BAT2','BAT3'].includes(slot)?row.dhAPEX:row.total; else if(sec==='rotation') v=row.SPx; else v=row.RPx;
+  if(sec==='start') v=slot==='DH'?row.offAPEX:row['v_'+slot]; else if(sec==='bench') v=['BAT','BAT2','BAT3'].includes(slot)?row.dhAPEX:row.total; else if(sec==='rotation') v=row.SPx; else v=row.RPx;
   return (v===undefined||v===null||Number.isNaN(v))?null:v; }
 function where(o,n){ if(!n) return null; for(const [sec] of SECS) for(const [s,x] of Object.entries(o[sec]||{})) if(x===n) return s; return null; }
 function names26(o){ const s=new Set(); for(const [sec] of SECS) for(const x of Object.values(o[sec]||{})) if(x) s.add(x); return s; }

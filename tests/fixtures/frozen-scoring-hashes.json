@@ -1,0 +1,1368 @@
+{
+  "commit": "14ac62685cffd1a32c8e3bf798d91c0d709bca03",
+  "files": {
+    "loader.js": "9df2b5d15f3946f498c6b1d8b972e0bc21ccc463b1f0ac4dc474186bb7366634",
+    "data/teams/angels.js": "b18e09a29e2f56dacc948a2529d20c6684e9dac9fb008b52f87cb90a801f2484",
+    "data/teams/astros.js": "bf9a65c6bfca9e46a13d26ae27faa422cf12974229dd4878c04ace518e6e8e1f",
+    "data/teams/athletics.js": "9a5cb79a31c12b40ec4b0a17830f81794dd21c2168dd42890d15a6f0268de259",
+    "data/teams/bluejays.js": "7f07e57d3fe16184d7b23efd314cd7194b88476be911deece4ded790c46ef4e4",
+    "data/teams/braves.js": "a50b921191d0a7b3e7d59e8fab3d2d35be9eb0a6637d467a048251558a876411",
+    "data/teams/brewers.js": "8dfadc67af68dbe0edec20e3cf379061afec9ccbc55e4207e5a5085cbc42c726",
+    "data/teams/cardinals.js": "adb9ae09f593da76183483ddfeb4c7b638aeb80d0bbe1e1f8b5d205eda80dce1",
+    "data/teams/cubs.js": "2f40feab62fe48dd6cd03ac1a12fcf6b190ce3d4f328de64c722a067d3bf082a",
+    "data/teams/diamondbacks.js": "accf9380313f65f661fbc0bb740d655dba63c173a3f5bb65be43543aaa9e0c12",
+    "data/teams/dodgers.js": "b47cb48525a34bf0de0cb23e4ceb1cec91d25fe9d222048d9f3c8adfe5dc2139",
+    "data/teams/giants.js": "da95415066675ecc7c0fc2903378f3b8cd8084adbd848e59022cf726402f84a4",
+    "data/teams/guardians.js": "c531ea09a3ec8d9d6463a43bcff0c0c3396d879a319c1475cf104c16f7f03e40",
+    "data/teams/mariners.js": "5e5b002dbc5a58a62c7ed233e451efb60865f1c263037dfe79aaba2b4a893048",
+    "data/teams/marlins.js": "8661289caa27ebf6e7dcdf5571697bb8bd6ca2e47e00a53d3388c81fa033e42f",
+    "data/teams/mets.js": "b0ff3aab53d7f9260729de4567b77e282d2e3060ce0f3e04a4223a1d7b5d50e3",
+    "data/teams/nationals.js": "92df369817e441903242c8e641e88d24da32cedcc3811a675d0f43fbe5abc345",
+    "data/teams/orioles.js": "2f7822628bf7072df29513c4f2a4be9fab4a58b419a49a2a81f1418f4a656698",
+    "data/teams/padres.js": "44a3b37e7a32ef2e522909798f90ad32bb30604d97f28ba4569fbdd78b0cb482",
+    "data/teams/phillies.js": "8d0270245ebd22d7bf866ad7e66f2985bfc668c80bb7899d22989ff6300f2aaf",
+    "data/teams/pirates.js": "f50acac504e9ee6ad9500cbedd3ea40dd0e6f24b699fb5c59d4d34256d3fcd68",
+    "data/teams/rangers.js": "467a7ff9776d8c5c15242deb814a047512a6d221a88810eb7898e0cdd823928f",
+    "data/teams/rays.js": "11a114dbf686877e11aac54ceb1601d62248faf5920600b58d358200d7a198d6",
+    "data/teams/reds.js": "6fc84a216bd4b9a8c6f274b0acb6c5fe00f0f8483a75f6697d0cd39b151f2c75",
+    "data/teams/redsox.js": "6b0ea6791fe7d399a3c445d2add18cad03e02c598694021e7150ca3833446bbb",
+    "data/teams/rockies.js": "9c3b5ccbf73af1fd9a268f669b1f9f4e6b38174c0aed636f22ffeb531309b61c",
+    "data/teams/royals.js": "d79c49a479a0e10c04f8073b6cd06c4c102ac8189c0a660314bce8ef1204fe4f",
+    "data/teams/tigers.js": "daaf2669443a759b40475ed2160184e84aed59bc52c8f6244df2a493b3ba8d02",
+    "data/teams/twins.js": "486560695f61306280c2eb9d11b29173c4c9e73c032f0219fa51c6479af2bc06",
+    "data/teams/whitesox.js": "f645c4a7c83418a532ea4b437d597276086167767a9cfd8a7f3843718b55e7a8",
+    "data/teams/yankees.js": "a3a7afb58addb854a1c897614b4d81085bf9a299d956e1cbe162b60fc362073e"
+  },
+  "bigMomentsArithmetic": "5668ab06e01281240a79842b1b5974aca0d82a9094a4acfa13e3cc1a0cf32984",
+  "indexMetadata": {
+    "version": "v0.9.8",
+    "exported": "2026-10-05 16:22 PT",
+    "rules": "LEGACY LORE \u2013 CLUBHOUSE RULES (v0.9.8, Oct 5 2026)\nStatus: test engine + our app (app v1.7 on engine v0.9.8: all 30 franchises + city split). The old ChatGPT app is retired and was not touched.\n\n== CURRENT RULES ==\n\nELIGIBILITY\n1. Franchise-only stats. Player needs 3+ seasons with the team. CHANGED (v0.9.2): a season counts toward the 3 only with 100+ PA (hitters) or 20+ IP (pitchers, starts and relief added together). Short seasons still count in his score (Peak, Prime, Career), just not toward the 3.\n2. A player can play a position only if he played it for that team in at least 25% of his team games or 100 games, whichever is lower. No sliding to positions he never played.\n3. LF and RF count as one corner-OF group. CF games don't count for the corners; SS games don't count for 2B/3B.\n3a. To START at a position, it must be at least 25% of his team games, or his most-played position. (Bench rules unchanged.)\n\nSCORING (APEX-R, no WAR)\n4. APEX shape: 25% Peak3 + 35% Prime5 + 40% Career, on franchise seasons only.\n5. Military seasons are skipped when finding the Prime5 window (can only help, never hurt). One sourced military list now covers every team. NEW (v0.9.5): a season in which he played no major-league games at all (injury, e.g. Wainwright's 2011 Tommy John year) is skipped the same way, instead of counting as a zero inside his best five years.\n6. Hitters = batting runs + baserunning + fielding + position adjustment + playing-time credit. Baserunning uses extra bases taken from play-by-play back to 1898, and double plays per real chance.\n6a. CHANGED (v0.9.2): double plays are now counted the Baseball-Reference way. A chance is a ground-ball double-play spot (runner on 1st, under 2 outs, batter hits a ground ball), each one worth 0.44 runs scaled to the run level of that season. None before 1931 (Baseball-Reference has none, and the old records miss about half of them). 2026 still uses the simpler chance count from the Baseball-Reference team pages. (Fixes Clemente: \u221220.5 runs \u2192 +10.6, Baseball-Reference +9.8.)\n6b. CHANGED (v0.9.2): extra bases taken. Seasons with partial play-by-play are no longer scaled up (up to 4x before); plays we can't see count as average. Before 1931 the records are much less reliable, so those runs count 34% (1898\u20131919) and 55% (1920\u201330). (Max Carey: 33.4 \u2192 14.5 runs.) Playing-time credit is a little bigger in stronger league-seasons (e.g. 1950s\u201360s NL), matching Baseball-Reference, and pitchers batting get none.\n6c. NEW (v0.9.5): the DH position adjustment is balanced within each league and season. Before, every DH league-season lost the DH's \u221217.5 runs per 150 games without anything to offset it, so every hitter in a DH league came out about 2 runs per 600 PA too low (AL since 1973 and NL since 2022 were about 12% under Baseball-Reference; now about 2%).\n7. League averages for all hitting comparisons leave out pitchers batting.\n8. Pitchers = runs prevented + playing-time credit. CHANGED (v0.9.5): starts are 90% runs-allowed-based + 10% FIP-based (was 80/20); relief innings stay 100% runs allowed. CHANGED (v0.9.4): relief innings are 100% runs allowed (no FIP), because run prevention is what counts and relievers strand or allow runs in ways FIP misses (Thigpen: ERA+ 142, low K/BB). A swingman's starts and relief innings each use their own blend. Relievers get credit for how tense their entry spots were (leverage, rule 8c), still at half credit like Baseball-Reference: (1 + leverage) / 2. Full credit was tested and left out (relievers came out 25% above Baseball-Reference). CHANGED (v0.9.1): was 60/40.\n8d. NEW (v0.9): every pitcher has three scores, like hitters at positions: a Starter score (starts only), a Reliever score (relief only) and a Combined score (everything).\n8e. NEW (v0.9): a reliever's playing-time credit per inning follows Baseball-Reference's level for that league and season: the same as a starter's before 1960, about 70% in 1960\u201372, and about half since 1973. (Before, relievers got a quarter of a starter's credit in every era.)\n8f. NEW (v0.9): the runs side now counts all runs a pitcher allowed, not just earned runs. Errors were already handled by taking team defense out (8a), so leaving out unearned runs too gave defense away twice.\n8i. CHANGED (v0.9.3): swingmen. Leverage is applied the Baseball-Reference way: (leverage \u2212 1) x his whole season's runs x his share of innings in relief, instead of only to the relief innings' runs. (Mace Brown 10.2 \u2192 9.5, Baseball-Reference 7.2.)\n8c. NEW: Leverage now comes from Baseball-Reference for every season it has (1910\u20132026). Before 1910 there is none, so we use our play-by-play numbers raised to Baseball-Reference's scale where we have them (some 1898\u20131909 seasons), and Baseball-Reference's average relief level (1.15) where we don't (1882\u20131909 otherwise). That affects only a handful of Yankees 1903\u201309 and Pirates 1882\u20131909 seasons. Scale re-set to match.\n8a. Team defense is taken out of the pitcher's ERA side (the fielders already get credit for it), so good defenses don't count twice. CHANGED (v0.9.2): measured against the league average defense that season (Baseball-Reference's old fielding numbers don't add up to zero across a league, so we were taking out too much in some years and too little in others).\n8g. NEW (v0.9.2): the FIP side is park-neutral. Home runs, walks and strikeouts each get their own park factor, instead of using the runs park factor. (Forbes Field cut home runs a lot, factor 0.77, but runs hardly at all, ~0.99, so Pirates pitchers' FIP looked too good.)\n8h. NEW (v0.9.2): opponent quality. A team's pitchers never face their own hitters, so the league baseline is adjusted for the lineups they actually faced (the rest of the league). Pitchers on a strong-hitting team face weaker lineups and lose a little; pitchers on a weak-hitting team gain a little. Baseball-Reference does the same.\n8b. Pitching before 1893 (50-foot distance) counts 89% (11% discount), based on how much more pitchers' results spread out in that era. NEW (v0.9.5): before 1901, innings beyond 300 in a season with the franchise count half (an 1880s ace's 500 innings counts as 400). 1800s workhorses had been scoring about 10% higher against Baseball-Reference than modern pitchers; now they are in line.\n9. Park factors: Statcast 2015+, 5-year home/road before that. CHANGED (v0.9.5): for hitters we now use Baseball-Reference's park factor, applied the way Baseball-Reference applies it (dividing by it rather than subtracting it). Ours was about 1.3 times as strong, which put Rockies hitters 26% under Baseball-Reference (now 3%). Pitchers keep our park factors.\n10. Fielding: Statcast 2016+. Before 2016, a blend of our play-by-play model and Baseball-Reference Total Zone, leaning almost all on Total Zone before 1986 (thin data) and 50/50 from 1988 to 2015. Total Zone by position from 1953 on; blank seasons count as missing, not zero. CHANGED (v0.9.6): every franchise now gets Total Zone by position, 1953\u20132015, from Baseball-Reference's team fielding pages (before, only the Mets, Yankees and Pirates had it, for some players; everyone else had a season total split across positions by games, and for 2003\u201315 that total was Baseball-Reference's DRS-based number). A player's numbers at each position are now his own (Venable: CF \u22122, RF +18 runs with the Padres, where the games split had credited his RF glove to CF). Before 1953 is unchanged (no Total Zone by position exists).\n10a. NEW (v0.9.3): catcher defense, Baseball-Reference style, from play-by-play for every season we have (1898+): stolen bases and caught stealing against the league rate for the same chances, pickoffs, wild pitches + passed balls, and catcher errors, by pitcher hand. It matches Baseball-Reference's catcher runs very closely (r = 0.96, 1953\u20132002). Box scores fill in only where play-by-play is missing.\n10b. NEW (v0.9.3, you approved keeping it): pitch framing 1988\u20132014 from Retrosheet pitch-by-pitch (called strikes on taken pitches, with pitcher, batter and umpire taken out), scaled to Statcast (x0.44). Statcast framing from 2015 as before. Baseball-Reference has no framing, so catchers can now differ from Baseball-Reference on purpose.\n10c. CHANGED (v0.9.3): our play-by-play range model uses batted-ball types only in seasons where 80%+ of hits have one, and balls in play with no fielder written down are shared out by league rates instead of dropped. Outfield range is park-adjusted (e.g. Coliseum left field, Fenway left field). (Fixes the Dodgers 1946\u201372: team defense \u22125 runs \u2192 +441, Baseball-Reference +468.)\n11. Every player gets a score at each eligible position plus one total score. APEX-V is only a tie-breaker (within 5%).\n11a. The overall scale is set so five franchises together (Mets, Yankees, Pirates, Dodgers, Cardinals) match Baseball-Reference WAR totals. No player is fit one by one. CHANGED (v0.9.6): hitters x1.0024, pitchers unchanged x0.9231 (5 teams: hitters 12540.5 vs Baseball-Reference 12540.0, pitchers 8156.4 vs 8155.6). v0.9.5 was x1.0035 / x0.9231; v0.9.4 x0.9974 / x0.9202.\n\nSTARTING NINE\n12. All nine starters are picked together to get the most team value. Fielders count hitting + baserunning + defense at that position, and must pass rule 3a.\n13. DH goes to the best hitter: run-production score (OPS+, power/slugging, batting runs, playing-time credit). No baserunning or glove in the DH score. Anyone can DH.\n14. DH glove rule: after the nine are picked, compare the DH with the top 2\u20133 starters he could replace. If the DH has the better glove (by 1+ run per 150 games), he plays the field and the other guy DHs.\n\nBENCH (in order)\n15. Backup C: best total score among catchers.\n16. Utility IF: must be SS-eligible and no worse than \u22125 fielding runs per 150 games at SS.\n17. 4th OF: best total among outfielders (must handle CF if the starters can't).\n18. FLEX: fills the thinner group (IF or OF), also covers pinch-running.\n19. Bench bat: best hitter left, using the same hitting-only score as the DH.\n\nPITCHING\n19a. NEW (v0.9): to be a starter, a pitcher needs 30 starts (or 25% of his team games, if that is lower), or 25% of his team innings as a starter. To be a reliever: 100 relief games (or 25% of his team games), or 25% of his innings in relief. Some pitchers are both.\n20. Rotation: top 5 by Starter score, starters only, with at least 1 lefty and 1 righty (CHANGED v0.9.7: was 2 of each). A swap happens only if the incoming pitcher has at least 90% of the score of the one he replaces.\n21. Bullpen: top 7 by Reliever score, relievers only, then a dedicated lefty specialist (CHANGED v0.9.8: a lefty closer does not count as the LHS; was \"at least 1 lefty\" in v0.9.7, which a lefty closer could satisfy alone; was 2 lefties and a forced long man before that). If short a non-closer lefty: the weakest non-closer righty out, the best lefty in (logged). LONG is a role label only (highest innings per game among the 7 already in); no emergency SP6 / long-man force-in.\n21a. NEW (v0.9): if two pitchers are within 2% of each other for the last rotation or bullpen spot, the one with the higher Combined score gets it.\n22. Closer and setup order are picked on run prevention: 50% Reliever score + 50% ERA+. NEW (v0.9.5) save-rate tiebreaker worth 10%: his save percentage with the franchise in closer seasons (10+ saves, 1969 on), pulled toward 85% as if he had 40 more chances at that rate (so a short record can't swing it). No closer seasons = neutral. It changes one closer: Pirates Melancon (90%) over Tekulve (74%). Saves themselves still don't count.\n22a. NEW (v0.9.5.1): to close, a pitcher needs a closer record with the franchise: at least one season with 10+ saves (1969 on) or 40%+ of his relief games finished. If the top pitcher in closer order doesn't have one, the next pitcher who does closes and everyone else keeps their order (if nobody in the pen has one, nothing changes). The receipt says so. It changes one closer: Rockies Fuentes (115 saves, 4 closer seasons, 57% finished) over Steve Reed (a setup man: 15 saves, 32 blown, 24% finished), who becomes SU1. CHANGED (v0.9.4): strikeouts and walks no longer count (was 40% Reliever score, 30% K/BB, 30% ERA+). Fixes Clippard closing for the Nationals and Strahm for the Phillies; Quisenberry now closes for the Royals.\n23. Roster: 26 men, max 13 pitchers (normally 14 hitters / 12 pitchers).\n\nLINEUP ORDER\n24. #3 best hitter, #4 most power, #2 best on-base of the remaining top bats, #5 next best.\n25. Leadoff: best on-base + speed, not one of the top 4 bats, not a catcher, above-average speed.\n26. #9 is a second leadoff man. No three straight same-side hitters in 1\u20138 (fixed only in 6\u20138). Catchers never bat 1st or 2nd.\n\nFAN OVERRIDE\n27. You can pin any player to a position or batting slot. Everything else rebuilds around it, and the receipt says \"Fan override.\"\n\nRECEIPTS\n28. Close Call. If the runner-up for a spot is within 2% of the pick, or a rule like the 90% lefty/righty swap is decided within 2 points, the receipt says \"Close Call\". NEW (v0.9): also when a lefty/righty swap picks someone and the next pitcher of that hand is within 5% of him. It never changes the pick.\n\nDATA\n29. 2026 counts as a full, final season: actual 2026 league averages, Statcast 2026 fielding and framing, and full 2026 stats.\n\n30 FRANCHISES (app v1.3)\n30. Every current franchise gets a clubhouse under these same rules (3-season minimum, 100 PA / 20 IP season floor, everything above). A franchise is its whole history, relocations and renames included: Senators \u2192 Twins, 1901 Milwaukee Brewers \u2192 Browns \u2192 Orioles, Boston/Milwaukee/Atlanta Braves, Philadelphia/Kansas City/Oakland Athletics (Sacramento 2025\u201326), New York/San Francisco Giants, Brooklyn/Los Angeles Dodgers, Senators (1961\u201371) \u2192 Rangers, Seattle Pilots \u2192 Brewers, Expos \u2192 Nationals, Colt .45s \u2192 Astros, Los Angeles/California/Anaheim Angels, Florida/Miami Marlins, (Devil) Rays. One exception kept from the approved Yankees build: the Yankees start in 1903 (Baltimore 1901\u201302 is left out).\n31. Before 1897 the data is season totals (Lahman), for every franchise that played then (Braves and Cubs from 1876, Reds, Pirates and Cardinals from 1882, Giants and Phillies from 1883, Dodgers from 1884), with the 89% pre-1893 pitching factor.\n32. Military years (rule 5): the curated list for every team, plus 28 sourced additions for the 27 new franchises (military_30.csv). A computer screen of wartime gaps found every player whose roster spot could depend on it; only those were checked and added.\n33. Two different players with the same name in one franchise (Ed Walsh, Al Smith the hitter and Al Smith the pitcher) carry their franchise years in the name, e.g. \"Ed Walsh (1904-1916)\". NEW (v0.9.5): names carry Jr., II, III and IV from MLB's official full names (Cal Ripken Jr., Ken Griffey Jr., Vladimir Guerrero Jr., Fernando Tat\u00eds Jr., Bobby Witt Jr.). Sr. is added only when a same-name Jr. is in the same franchise (Ken Griffey Sr., Eddie Collins Sr.). Nolan Ryan is left as is (legally Jr., never used). Names only; scores don't change. Not applied yet to Mets/Yankees/Pirates (their approved files stay identical; the Yankees have two Bobby Browns).\n34. If both bullpen lefties already hold the closer or setup roles, there is no Lefty Specialist role; the receipt says so (Reds, Brewers).\n35. Thin pool: a franchise with fewer than 110 qualified hitters or pitchers is tagged \"Thin pool\" in the app (Diamondbacks, Rays, Marlins, Rockies, Mariners, Blue Jays, Brewers, Royals, Padres). The rules do not change for them.\n\n== CHANGE LOG ==\nv0.1  Original plan: APEX-first picks with receipts.\nv0.2  Score at every position + one total score. APEX-V only breaks ties. DH = pure hitting. Closer by quality, not saves.\nv0.3  Traditional lineup (best hitter 3rd). Top-4 bats can't lead off. Military years skipped in Prime5. Corner OF combined.\nv0.4  No sliding to positions never played. 25%-or-100-games eligibility. All nine picked together. Utility SS glove check. 2 lefty / 2 righty rotation. Fan override pins. (2B/3B grouping passed on.)\nv0.5  APEX rebuilt without WAR (APEX-R).\nv0.5b DH back to hitting only, built on run production (OPS+, power).\nv0.6  Full free data added: Retrosheet play-by-play, Statcast, park factors, real reliever leverage.\nv0.6b Pitchers left out of league averages. Fixed bug scoring 2022\u201325 against the 2021 league.\nv0.7  Fielding blend with Total Zone (fixes Mantle +46 / DiMaggio issue). Tried counting baserunning at DH too.\nv0.7.1 Reverted that: DH goes to best hitter, baserunning only for fielders. Total Zone by position; blanks treated as missing.\nv0.7.2 DiMaggio CF / Mantle DH pinned as fan override.\nv0.7.3 Your DH glove rule made the default; pin removed (same result).\nv0.8  Start rule (25% or most-played position). Team defense taken out of pitcher scores. NL baseline audit on 5 teams (the 6-run gap was mostly a measuring mistake; the real ~4-run NL/AL gap is now ~1). Scale set on 5 teams. Pre-1893 pitching counts 89%. One military list for all teams (Pirates added). Bullpen lefty rule. Real reliever leverage for all teams.\nv0.8.1 Full final 2026 season (real 2026 league, Statcast 2026, full 2026 stats; fixed missing 2026 rookies). Close Call receipts. No roster changes.\nv0.8.2 Reliever leverage from Baseball-Reference (1910\u20132026), ours scaled up to match before that. Closers gain (Rivera 1.55 \u2192 1.78). No roster changes; Chapman passes Page as the Yankees' first reliever out; Watson makes the Pirates pen through the lefty rule now.\nv0.9  Pitchers scored like position players: Starter / Reliever / Combined scores, role eligibility (30 starts / 100 relief games / 25%), reliever credit at Baseball-Reference's level by era (equal before 1960), all runs allowed counted (fixes defense being given twice), 2% ties go to Combined, 5% lefty/righty Close Call. Yankees: Chesbro in for Gomez (lefty/righty rule), Page in for Green. Pirates: Ed Morris in for Veale (on merit); Mace Brown 7th reliever but bumped by the lefty rule. Mets: no change.\nv0.9.1 Pitcher blend 60/40 -> 80% runs allowed / 20% FIP (you approved after the prototype). Pitcher scale re-set x0.9057 -> x0.8930 (5 teams still match Baseball-Reference: 8155.9 vs 8155.6). Closer to Baseball-Reference for starters, swingmen and relievers (average miss 1.19 -> 0.93 wins; swingmen 20% high -> 14% high). No player changes on the three rosters; labels only: Yankees Ruffing SP3 / Guidry SP4; Pirates Adams SP1 / Friend SP2, Tekulve SU2 / Face MID1; Watson makes the Pirates pen on merit (no lefty swap needed). NEW Close Call: Yankees Chesbro in for Gomez by the lefty/righty rule at 91.7% (within 2 points of the 90% line).\nv0.9.2 Five scoring fixes plus the season floor (you approved after the candidate test): double plays the Baseball-Reference way (ground-ball chances, none before 1931), pre-1931 extra bases counted at 34\u201355%, no more scaling up partial seasons, park-neutral FIP, team defense measured against league average, opponent-quality adjustment for pitchers, season floor (100 PA / 20 IP, 3 qualifying seasons). Scale re-set: hitters x1.0058, pitchers x0.9092 (5 teams still match Baseball-Reference: 12539.7 vs 12540.0 and 8155.9 vs 8155.6). Closer to Baseball-Reference (pitcher careers average miss 0.93 -> 0.84 wins; season double plays r 0.77 -> 0.94; Pirates 1946\u201372 pitchers 342 -> 337 vs 319). Mets: no change. Yankees: Randolph in at 2B for Lazzeri (Close Call 99.1%), McDaniel in for Page in the pen (Close Call 99.6%); Guidry SP3 / Ruffing SP4; Chesbro for Gomez now at 97.5% (no longer a Close Call); NEW Close Call OF4 Combs vs Bernie Williams (98.5%). Pirates: no player changes; Cooper SP3 / Leever SP4, Face SU2 / Tekulve MID1; the Sanguill\u00e9n / Carroll backup-C Close Call is gone.\nv0.9.3 Catcher defense, play-by-play range fix and swingman leverage (you approved after the candidate test, keeping the 1988\u20132014 Retrosheet framing): Baseball-Reference-style catcher runs from play-by-play (r 0.96 vs Baseball-Reference), framing 1988\u20132014 from Retrosheet pitches (x0.44 to Statcast) plus Statcast 2015+, batted-ball types only in well-typed seasons, unrecorded fielders shared out by league rates, outfield park adjustment, swingman leverage on the whole season. Scale re-set: hitters x0.9974, pitchers x0.9258 (5 teams match Baseball-Reference). Dodgers team defense 1946\u201372 \u22125 \u2192 +441 runs (Baseball-Reference +468); Pirates catchers 1946\u201372 +3 \u2192 +33 (+52). Mets: no change. Yankees: Bernie Williams OF4 / Combs FLEX (swapped; Close Call 99.8%). Pirates: Morris SP3 / Cooper SP5 (swapped); NEW Close Call at C: Kendall over Sanguill\u00e9n (98.6%). Big Moments option: Mets no change (new Close Call OF4 Cleon Jones / Mookie Wilson 98.7%); Yankees Randolph 2B over Lazzeri, Williams OF4 / Combs FLEX, Gossage SU2 / Lyle MID1 / Robertson MID2; Pirates Friend SP2 / Cooper SP3 / Morris SP4 / Leever SP5.\nv0.9.3 + 30 teams (app v1.3, Oct 3 2026): rules 30\u201335; same engine and scales. Data fixes found on the way: pre-1897 players with an apostrophe (Tip O'Neill, Jim O'Rourke, Darby O'Brien, Hank O'Day) now join their records; Dodgers and Cardinals 2026 rows were missing (now in; Ohtani \u22121.5 W, Herrera \u22121.2 W). Mets, Yankees and Pirates files are byte-identical.\nv0.9.4 Run prevention first (you approved after the 30-team pitcher prototypes, Oct 4 2026): relief innings scored 100% on runs allowed (starts stay 80/20), pitcher scale x0.9258 -> x0.9202, closer/setup order 50% Reliever score + 50% ERA+ (K/BB dropped), leverage stays at half credit. Match to Baseball-Reference about the same (average miss 0.81 W either way). Staff changes: White Sox Thigpen into the pen for Staley; Yankees Gossage setup (SU1), Robertson to middle relief; Pirates Tekulve closes, V\u00e1zquez becomes the lefty specialist; Mets Ben\u00edtez closes, D\u00edaz setup; Royals Quisenberry closes; Phillies Madson closes, Hoerner in for Strahm; Nationals Burke closes; also pen changes for Dodgers, Athletics, Braves, Reds, Astros, Royals, Padres, Mariners, Giants, Rays. No rotation changes, no hitter changes. Big Moments option: the relief part of pitcher clutch is now the shutdown score (see Big Moments BM rules).\n\nv0.9.5 Baseball-Reference match fixes (you approved after the proto_v095 prototypes, Oct 4 2026; starters 90/10): DH position adjustment balanced per league-season (6c); hitters use Baseball-Reference's park factor (9); starts 90/10 (8); 1800s innings over 300 count half (8b); seasons with no MLB games skipped in Prime5 (5); 10% save-rate tiebreaker for closer order (22); Jr./II/III names (33). Scale hitters x0.9974 \u2192 x1.0035, pitchers x0.9202 \u2192 x0.9231. Match to Baseball-Reference: AL hitters since 1973 \u221212% \u2192 \u22122%, NL 2022+ \u221213% \u2192 \u22121%, Rockies \u221226% \u2192 \u22123%, spread between teams 6.3 \u2192 2.9 points, all hitters \u22124.1% \u2192 \u22120.3%; starters' average miss 0.95 \u2192 0.85 wins, all pitchers 0.81 \u2192 0.74. 25 franchises change players or roles (27 counting name-only changes). White Sox: Fisk backup C (Lollar out). Yankees: Ford SP1, Pettitte SP2, Chesbro SP4, Ruffing SP5; Robertson SU2, Betances middle relief. Pirates: Melancon closes, Tekulve SU1, V\u00e1zquez SU2, Watson LHS, Face middle relief; Tannehill in for Ed Morris (Cooper SP3). Mets: McNeil OF4 for Cleon Jones; D\u00edaz SU1, Orosco SU2. Cubs: Jenkins SP1, Reuschel SP2, Griffith SP3 (Hutchison out), Clarkson SP4; Rizzo bench bat (Gore out). Cardinals: Wainwright SP3 (Silver King out), Tip O'Neill FLEX (Brock out). Rangers: Darvish SP4. Padres: Ashby SP3. Rockies: no change.\nv0.9.5.1 Closer record rule 22a (you approved, Oct 4 2026): Rockies Fuentes closes, Reed SU1. No other team changes.\nv0.9.6 Total Zone by position for all 30 franchises, 1953\u20132015 (rule 10; you approved the 1953\u20132015 version, Oct 4 2026). Hitter scale x1.0035 \u2192 x1.0024. 17 franchises change. Mets: Cleon Jones OF4 (McNeil out). Pirates: Bonds FLEX, McCutchen OF4 (swapped). Astros: Altuve 2B, Biggio backup C, Joe Morgan FLEX (Castro out). Padres: Headley OF4 (Giles out); Venable stays CF. Rangers: Toby Harrah SS, A-Rod utility IF (Seager out). Yankees and White Sox: no change. Also Cardinals (Brock FLEX for Tip O'Neill), Diamondbacks, Braves, Reds, Royals, Angels, Marlins, Brewers (Gantner 2B for Turang), Twins (Yost 3B, Killebrew DH), Phillies (Roberts SP1), Rays, Nationals (Mart\u00ednez SP3).\n\nv0.9.7 Handedness floors (you approved, Oct 5 2026): rotation needs only 1 lefty and 1 righty (was 2 of each); bullpen needs only 1 lefty (was 2); no long-man / emergency SP6 force-in (LONG stays a role label on whoever is already in). Same 90% swap line. App v1.7 UI already described the new floors. Staff changes: 7 rotations drop the second-hand chase (e.g. Braves Glavine \u2192 Smoltz at SP5, Pirates Tannehill \u2192 Phillippe); 14 pens drop the extra lefty or long-man force (Royals pen: Quisenberry, Holland, Montgomery, Mingori, Bird, Soria, Herrera \u2014 Bird back, Black out; Mingori still the one LHS over Davis). Royals SP5 stays Leibrandt over Leonard (all-righty top five still needs one lefty at 92.3%). 8 teams unchanged.\nv0.9.8 Dedicated LHS (you approved, Oct 5 2026): the bullpen still needs one lefty specialist, but a lefty closer does not count toward that seat. After the top 7 and closer are set, if there is no non-closer LHP, the best available lefty replaces the weakest non-closer righty. Orioles (franchise and Baltimore city): B.J. Ryan in for Sammy Stewart alongside Britton; Marlins Renyel Pinto; Rays J.P. Howell. Rotation floors unchanged (min 1 L / 1 R). No publish until asked.\n\n\n\n== STILL OPEN / PROPOSED ==\n- Total Zone by position: our fielding now tracks Baseball-Reference's position Total Zone much more closely (r 0.906 \u2192 0.968), but hitters' careers sit a little further from Baseball-Reference WAR (average miss 1.87 \u2192 1.93 wins), because Baseball-Reference WAR uses DRS after 2002. Using Total Zone only through 2002 (keeping DRS after) was the tested alternative (9 franchises change instead of 17).\n- Yankees 1901\u201302 Baltimore seasons: still left out (Jimmy Williams +6.3 wins if added; no roster change). Next data rebuild.\n- Ed Walsh Jr. (White Sox 1928\u201332) is not marked Jr. in MLB's names, so both Ed Walshes still carry franchise years.\n- DH and bench-bat close calls after the re-fit of the DH score: Tigers DH Crawford 44.1 vs Cabrera 43.2 (Cabrera bench bat), Phillies bench bat Thompson vs Magee (tie at 32.2), Rays bench bat McGriff vs Arozarena (tie at 12.9).\n- Helton and Arenado are still about 7 wins under Baseball-Reference (fielding source after 2003). Pitcher park factors are still ours (Rockies pitchers +19% vs Baseball-Reference).\n- Tested and not adopted in v0.9.4: full or three-quarter leverage credit; shutdown score inside the main score (real but small and noisy: split-half r about 0.09). Prototype: proto_pitch/REPORT.md.\n- Pirates catchers 1946\u201372 are now +33 runs (Baseball-Reference +52; were +3). Pirates 1946\u201372 pitchers moved 337 \u2192 341 wins vs Baseball-Reference 319: crediting Forbes Field catchers did not shrink the pitcher gap, because what is left is mostly Baseball-Reference's own league adjustment (+32) and re-centring (+10), which we don't copy.\n- Dodgers 1946\u201372 pitchers: 484 \u2192 451 wins vs Baseball-Reference 443 (was ~40 high, now ~8 high) after the range fix.\n- Framing (rule 10b) moves catchers away from Baseball-Reference on purpose: catchers as a group 1353 \u2192 1387 wins vs Baseball-Reference 1276 (1371 without framing). Posada 47.7 \u2192 43.8, Piazza 26.9 \u2192 29.6 (franchise wins). Kendall at Pirates C (98.6% Close Call over Sanguill\u00e9n) is the only roster effect.\n- Mace Brown 9.5 vs Baseball-Reference 7.2 (+2.3) after the swingman fix; the rest is the league adjustment and smaller pieces. Not on the roster.\n- Baseball-Reference's league re-centring for NL pitchers 1946\u201372 is only about half team defense; the rest is Baseball-Reference's own expected-runs model not adding up to league runs. We don't copy that part (about 5 wins of the Pirates gap).\n- 2026 double plays still use the simpler chance count from the Baseball-Reference team pages (no 2026 play-by-play yet).\n- Swingmen still score a bit high as a group vs Baseball-Reference (11.5% high after v0.9.3; 12% v0.9.2; 14% v0.9.1). Bob Veale 25.8 vs 23.9. Caveat: Baseball-Reference WAR is built on runs allowed, so part of the better match from leaning toward runs allowed is built in.\n- Starters since 1973 are about 3% under Baseball-Reference (Seaver 67.9 vs 76.0). A separate starter scale was tested and not added: it would take credit from relievers, who are on target, and it would not change any rotation.\n- Fielding before 1953 (DiMaggio, Ruth, Lazzeri) uses rougher data. Yankees 2B is Randolph over Lazzeri (Close Call 98.6%), and Lazzeri's blank fielding is still the biggest doubt there. Yankees OF4 / FLEX: Bernie Williams and Combs swapped in v0.9.3 (Close Call 99.8%).\n- Clemente is 81.7 vs Baseball-Reference 95.0 after the double-play fix; the rest is fielding and arm. Carey 62.0 vs 53.6; the rest is outside baserunning.\n- V\u00e1zquez question and the Negro Leagues version: undecided, unchanged.\n- NL hitters still about 1 run per 600 PA low.\n- Optional cost cap on the DH glove rule (not in your version; costs the Yankees 5.1 wins).\n- 30 teams: Athletics 2025\u201326 (Sacramento) have no Statcast park factor yet; the era factor is used.\n- Fan-override bug (since v1.2): pinning Piazza to DH and Alfonzo to 3B with Reyes batting 1st stops the Python engine (lineup slot fill); that test case is skipped.\n",
+    "rules_file": "out/legacy_lore_rules_v0.9.8.md",
+    "tiers": {
+      "A": "2016+: Statcast fielding and framing, full play-by-play (2026: final B-Ref team pages)",
+      "B": "1953-2015: Retrosheet play-by-play; fielding adds Baseball-Reference Total Zone by position (team fielding pages, every franchise)",
+      "C": "1898-1952: partial play-by-play; fielding is the WAR-file Total Zone split by games (no Total Zone by position)",
+      "D": "1876-1897: season totals only (no game data, no extra bases or double plays)"
+    },
+    "app_version": "v1.8",
+    "thin_n": 110,
+    "bm_rules": "BIG MOMENTS OPTION (app v1.1; engine v0.9.2 + Big Moments option; OFF by default)\n\nWhat it is\n- An opt-in switch in the app. With it OFF (default) every score, roster, role and Close Call is exactly engine v0.9.2.\n- With it ON, two bonuses (in wins) are added to every score the roster engine uses, and the whole clubhouse is rebuilt by the same rules.\n- The October and Clutch numbers are always shown on player cards, whether the switch is on or off.\n\nBM1. October bonus (postseason, this franchise only)\n- Source: Retrosheet postseason play-by-play, 1903-2025. Every plate appearance gets win probability added (WPA) from an era-based win-expectancy model.\n- Each play is weighted by what the game meant: series swing = P(win series | win game) - P(win series | lose game), scaled to average 1, times a round weight (World Series 1.0, LCS 0.7, Division Series 0.5, Wild Card 0.35). A World Series Game 7 counts about 2.4x an average postseason game.\n- Positive-only on the franchise career total: bad Octobers cancel good ones, but the total never goes below 0, so October never lowers a score.\n- Cap: the smaller of 3.0 W or 10% of the player's v0.9.2 APEX (Total; for pitchers each of Combined / Starter / Reliever is capped against its own score).\n\nBM2. Clutch bonus (regular season, this franchise only)\n- Clutch = WPA/pLI - WPA/LI: how much better (or worse) he did in high-leverage spots than in ordinary ones. Dividing by his average leverage (pLI) removes how big his spots were; subtracting WPA/LI removes the context-neutral value v0.9.2 already credits (batting runs / RE24).\n- Intentional walks removed; centred on the league-season average; the league-wide \"great hitters look unclutch\" quality bias removed.\n- Relievers: compared with relievers, and the part tied to how much leverage they were handed is removed, because v0.9.2 already pays for leverage through gmLI. No double counting.\n- Two-way (can be + or -), shrunk toward 0 for reliability: kept share = PA / (PA + 35,000) (odd/even-year career reliability r = 0.08 hitters, 0.10 pitchers).\n- Cap: +/-1.5 W or 5% of v0.9.2 APEX, whichever is smaller.\n\nBM2b. Shutdown score (relief innings; NEW in app v1.4 / engine v0.9.4, replaces the relief part of Clutch for pitchers)\n- Shutdown = win probability added in relief minus what his runs prevented are already worth at that leverage (run value converted to wins by era and leverage level), compared with an average reliever in the same spots. Whatever is tied to how much leverage he was handed (paid by gmLI) or to how good he was at preventing runs (paid by the runs side) is taken out, so nothing is counted twice.\n- Two-way (+ or -). It barely repeats between halves of a career (split-half r about 0.09), so it is shrunk hard: kept share = relief batters faced / (BF + 10,000). Cap +/-1.5 W.\n- Starters keep the two-way Clutch for their starting innings (BM2). A swingman gets Clutch for his starts and Shutdown for his relief.\n- Biggest: Rivera +1.5 (cap), Hoffman +1.4, Quisenberry +1.2; lowest: Face -1.5 (cap), Lavelle -1.5, John Franco -1.1. Thigpen -0.5.\n\nBM3. How it enters the scores (switch ON)\n- Hitters: bonus = October + Clutch, added to Total APEX, Off-APEX, Hit-APEX, DH-Prod, DH-Prod+BR and the value at every position. Ranks are recomputed.\n- Pitchers: Combined gets all of it; Starter gets the starting-innings parts; Reliever gets the relief parts. Ranks are recomputed.\n- The roster engine (starting nine, DH glove rule, bench, rotation, bullpen roles, lineup, Close Calls) then runs unchanged. Fan-override pins work the same way.\n\nBM4. Badges\n- October badge on the player card when the October bonus is +0.5 W or more.\n- Clutch badge only when the Clutch bonus is +0.5 W or more (no badge for negative clutch; the number is still on the card).\n\nBM5. Limits\n- No 2026 postseason or 2026 play-by-play yet. Pre-1920 regular-season play-by-play is incomplete, so deadball clutch rests on fewer PA (shrunk harder).\n- WPA credits only batter and pitcher: fielders' October plays and non-PA events (steals, wild pitches) are not in it.\n\nCHANGE LOG (app)\n- app v1.8 (Oct 5 2026): History / Almanac / Lore tabs on every team page (next to Clubhouse / Hitters / Pitchers) and a league History reader (five-year chapters 1871\u20132026); player cards add \"In the history books\". Lore data loads per team on demand; the offline single file shows the roster build and says the lore tabs need the online app. Engine v0.9.8 unchanged; Big Moments: same rules.\n- app v1.6 (Oct 4 2026): engine v0.9.6 default (Total Zone by position for all 30 franchises, 1953\u20132015; hitter scale x1.0024). Big Moments: same rules; tables rebuilt from the v0.9.6 scores\n- app v1.5.1 (Oct 4 2026): engine v0.9.5.1 default (closer record rule 22a: Rockies Fuentes closes). Big Moments: same rules; tables rebuilt\n- app v1.5 (Oct 4 2026): engine v0.9.5 default (DH adjustment balanced per league-season, Baseball-Reference park factor for hitters, starts 90/10, 1800s innings over 300 count half, missed seasons skipped in Prime5, 10% save-rate tiebreaker for closer order, Jr. names). Big Moments: same rules; bonus tables rebuilt from the v0.9.5 scores\n- app v1.4 (Oct 4 2026): engine v0.9.4 default (relief innings 100% runs allowed, closer order on Reliever score + ERA+). Big Moments: relief part of pitcher Clutch replaced by the Shutdown score (BM2b); bonus tables rebuilt from the v0.9.4 scores.\n- app v1.2 (Oct 3 2026): engine v0.9.3 default (catcher defense + 1988\u20132014 framing, play-by-play range fix, swingman leverage); Big Moments bonuses rebuilt from the v0.9.3 scores (same rules BM1-BM5).\n- app v1.3 (Oct 3 2026): all 30 franchises. October = each franchise's own postseason games (Retrosheet 1903\u20132025, every club); Clutch = its own regular-season play-by-play. Same rules BM1-BM5 and the same league-wide clutch fit; the Mets/Yankees/Pirates bonus tables are identical to v1.2.\n- app v1.3.1 (Oct 3 2026): smaller single-file build (about 4 MB instead of 25.7 MB) so it opens on a phone and fits a chat attachment. Same engine, rules, scores and features; data packed (gzip) and each team decoded only when opened.\n- app v1.1 (Oct 3 2026): Big Moments option (rules BM1-BM5; engine v0.9.2 + ENGINE_BM=1 in engine_v5.py, bonuses from bm/bm_proto.py). October and Clutch badges and numbers on player cards. Default unchanged (v0.9.2).\n- app v1 (Oct 3 2026): first release. Engine v0.9.2 clubhouses for Mets, Yankees, Pirates, receipts, Close Calls, fan-override pins, rules page, single-file offline build.\n",
+    "bm_rules_file": "out/legacy_lore_big_moments_option.md",
+    "bm": {
+      "label": "Big Moments",
+      "K": 35000,
+      "caps": {
+        "oct_w": 3.0,
+        "oct_pct": 0.1,
+        "cl_w": 1.5,
+        "cl_pct": 0.05
+      },
+      "badge_min": 0.5,
+      "engine": "v0.9.8 + Big Moments option"
+    },
+    "teams": [
+      {
+        "key": "mets",
+        "code": "NYM",
+        "dir": ".",
+        "name": "New York Mets",
+        "short": "Mets",
+        "since": 1962,
+        "lg": "NL",
+        "div": "East",
+        "colors": [
+          "#002D72",
+          "#FF5910"
+        ],
+        "bmkey": "mets",
+        "history": "New York Mets",
+        "seasons": 65,
+        "thin": false,
+        "pool": [
+          136,
+          111
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "v5_hitter_scores.csv",
+          "pitchers": "v5_pitcher_scores.csv",
+          "out": "v5_out.json",
+          "bat": "apexr/apexr_bat_NYM.csv",
+          "pit": "apexr/apexr_pit_NYM.csv",
+          "bonus": "bm/bonus_mets.csv",
+          "out_bm": "v5_out_bm.json"
+        }
+      },
+      {
+        "key": "yankees",
+        "code": "NYY",
+        "dir": "yankees",
+        "name": "New York Yankees",
+        "short": "Yankees",
+        "since": 1903,
+        "lg": "AL",
+        "div": "East",
+        "colors": [
+          "#0C2340",
+          "#C4CED3"
+        ],
+        "bmkey": "yankees",
+        "history": "New York Yankees",
+        "seasons": 124,
+        "thin": false,
+        "pool": [
+          217,
+          198
+        ],
+        "military": {
+          "brownbo03": [
+            1952,
+            1953
+          ],
+          "colemje01": [
+            1952,
+            1953
+          ],
+          "dickebi01": [
+            1944,
+            1945
+          ],
+          "dimagjo01": [
+            1943,
+            1944,
+            1945
+          ],
+          "gordojo01": [
+            1944,
+            1945
+          ],
+          "henrito01": [
+            1943,
+            1944,
+            1945
+          ],
+          "johnsbi03": [
+            1944,
+            1945
+          ],
+          "kellech01": [
+            1944,
+            1945
+          ],
+          "martibi02": [
+            1954,
+            1955
+          ],
+          "rizzuph01": [
+            1943,
+            1944,
+            1945
+          ],
+          "byrneto01": [
+            1944,
+            1945
+          ],
+          "chandsp01": [
+            1944,
+            1945
+          ],
+          "fordwh01": [
+            1951,
+            1952
+          ],
+          "ruffire01": [
+            1943,
+            1944,
+            1945
+          ],
+          "russoma01": [
+            1944,
+            1945
+          ],
+          "shawkbo01": [
+            1918
+          ]
+        },
+        "dupnames": [],
+        "files": {
+          "hitters": "yankees/v5_hitter_scores.csv",
+          "pitchers": "yankees/v5_pitcher_scores.csv",
+          "out": "yankees/v5_out.json",
+          "bat": "apexr/apexr_bat_NYY.csv",
+          "pit": "apexr/apexr_pit_NYY.csv",
+          "bonus": "bm/bonus_yankees.csv",
+          "out_bm": "yankees/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "pirates",
+        "code": "PIT",
+        "dir": "pirates",
+        "name": "Pittsburgh Pirates",
+        "short": "Pirates",
+        "since": 1882,
+        "lg": "NL",
+        "div": "Central",
+        "colors": [
+          "#27251F",
+          "#FDB827"
+        ],
+        "bmkey": "pirates",
+        "history": "Pittsburgh Pirates",
+        "seasons": 145,
+        "thin": false,
+        "pool": [
+          254,
+          223
+        ],
+        "military": {
+          "fletcel01": [
+            1944,
+            1945
+          ],
+          "groatdi01": [
+            1953,
+            1954
+          ],
+          "vanroma01": [
+            1944,
+            1945
+          ],
+          "halleja01": [
+            1944,
+            1945
+          ],
+          "heintke01": [
+            1943,
+            1944,
+            1945
+          ],
+          "klinero01": [
+            1953,
+            1954
+          ],
+          "lannijo01": [
+            1944
+          ],
+          "lawve01": [
+            1952,
+            1953
+          ]
+        },
+        "dupnames": [],
+        "files": {
+          "hitters": "pirates/v5_hitter_scores.csv",
+          "pitchers": "pirates/v5_pitcher_scores.csv",
+          "out": "pirates/v5_out.json",
+          "bat": "apexr/apexr_bat_PIT.csv",
+          "pit": "apexr/apexr_pit_PIT.csv",
+          "bonus": "bm/bonus_pirates.csv",
+          "out_bm": "pirates/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "diamondbacks",
+        "code": "ARI",
+        "dir": "teams/ari",
+        "name": "Arizona Diamondbacks",
+        "short": "D-backs",
+        "since": 1998,
+        "lg": "NL",
+        "div": "West",
+        "colors": [
+          "#A71930",
+          "#E3D4AD"
+        ],
+        "bmkey": "ari",
+        "history": "Arizona Diamondbacks",
+        "seasons": 29,
+        "thin": true,
+        "pool": [
+          57,
+          60
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/ari/v5_hitter_scores.csv",
+          "pitchers": "teams/ari/v5_pitcher_scores.csv",
+          "out": "teams/ari/v5_out.json",
+          "bat": "apexr/apexr_bat_ARI.csv",
+          "pit": "apexr/apexr_pit_ARI.csv",
+          "bonus": "bm/bonus_ari.csv",
+          "out_bm": "teams/ari/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "athletics",
+        "code": "ATH",
+        "dir": "teams/ath",
+        "name": "Athletics",
+        "short": "Athletics",
+        "since": 1901,
+        "lg": "AL",
+        "div": "West",
+        "colors": [
+          "#003831",
+          "#EFB21E"
+        ],
+        "bmkey": "ath",
+        "history": "Philadelphia/Kansas City/Oakland Athletics",
+        "seasons": 126,
+        "thin": false,
+        "pool": [
+          224,
+          209
+        ],
+        "military": {},
+        "dupnames": [
+          "Bob Johnson -> Bob Johnson (1933-1942)",
+          "Bob Johnson -> Bob Johnson (1960-1970)"
+        ],
+        "files": {
+          "hitters": "teams/ath/v5_hitter_scores.csv",
+          "pitchers": "teams/ath/v5_pitcher_scores.csv",
+          "out": "teams/ath/v5_out.json",
+          "bat": "apexr/apexr_bat_ATH.csv",
+          "pit": "apexr/apexr_pit_ATH.csv",
+          "bonus": "bm/bonus_ath.csv",
+          "out_bm": "teams/ath/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "braves",
+        "code": "ATL",
+        "dir": "teams/atl",
+        "name": "Atlanta Braves",
+        "short": "Braves",
+        "since": 1876,
+        "lg": "NL",
+        "div": "East",
+        "colors": [
+          "#13274F",
+          "#CE1141"
+        ],
+        "bmkey": "atl",
+        "history": "Boston/Milwaukee/Atlanta Braves",
+        "seasons": 151,
+        "thin": false,
+        "pool": [
+          256,
+          216
+        ],
+        "military": {
+          "fletcel01": [
+            1944,
+            1945
+          ],
+          "maranra01": [
+            1918
+          ],
+          "lannijo01": [
+            1944
+          ]
+        },
+        "dupnames": [
+          "Eddie Miller -> Eddie Miller (1939-1942)",
+          "Eddie Miller -> Eddie Miller (1978-1981)"
+        ],
+        "files": {
+          "hitters": "teams/atl/v5_hitter_scores.csv",
+          "pitchers": "teams/atl/v5_pitcher_scores.csv",
+          "out": "teams/atl/v5_out.json",
+          "bat": "apexr/apexr_bat_ATL.csv",
+          "pit": "apexr/apexr_pit_ATL.csv",
+          "bonus": "bm/bonus_atl.csv",
+          "out_bm": "teams/atl/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "orioles",
+        "code": "BAL",
+        "dir": "teams/bal",
+        "name": "Baltimore Orioles",
+        "short": "Orioles",
+        "since": 1901,
+        "lg": "AL",
+        "div": "East",
+        "colors": [
+          "#DF4601",
+          "#000000"
+        ],
+        "bmkey": "bal",
+        "history": "Milwaukee Brewers (1901)/St. Louis Browns/Baltimore Orioles",
+        "seasons": 126,
+        "thin": false,
+        "pool": [
+          238,
+          209
+        ],
+        "military": {
+          "galehde01": [
+            1945
+          ]
+        },
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/bal/v5_hitter_scores.csv",
+          "pitchers": "teams/bal/v5_pitcher_scores.csv",
+          "out": "teams/bal/v5_out.json",
+          "bat": "apexr/apexr_bat_BAL.csv",
+          "pit": "apexr/apexr_pit_BAL.csv",
+          "bonus": "bm/bonus_bal.csv",
+          "out_bm": "teams/bal/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "redsox",
+        "code": "BOS",
+        "dir": "teams/bos",
+        "name": "Boston Red Sox",
+        "short": "Red Sox",
+        "since": 1901,
+        "lg": "AL",
+        "div": "East",
+        "colors": [
+          "#BD3039",
+          "#0C2340"
+        ],
+        "bmkey": "bos",
+        "history": "Boston Red Sox",
+        "seasons": 126,
+        "thin": false,
+        "pool": [
+          224,
+          213
+        ],
+        "military": {
+          "dimagdo01": [
+            1943,
+            1944,
+            1945
+          ],
+          "doerrbo01": [
+            1945
+          ],
+          "peskyjo01": [
+            1943,
+            1944,
+            1945
+          ],
+          "willite01": [
+            1943,
+            1944,
+            1945,
+            1952,
+            1953
+          ],
+          "galehde01": [
+            1945
+          ],
+          "hughste01": [
+            1945
+          ]
+        },
+        "dupnames": [
+          "Joe Harris -> Joe Harris (1905-1907)",
+          "Joe Harris -> Joe Harris (1922-1925)"
+        ],
+        "files": {
+          "hitters": "teams/bos/v5_hitter_scores.csv",
+          "pitchers": "teams/bos/v5_pitcher_scores.csv",
+          "out": "teams/bos/v5_out.json",
+          "bat": "apexr/apexr_bat_BOS.csv",
+          "pit": "apexr/apexr_pit_BOS.csv",
+          "bonus": "bm/bonus_bos.csv",
+          "out_bm": "teams/bos/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "cubs",
+        "code": "CHC",
+        "dir": "teams/chc",
+        "name": "Chicago Cubs",
+        "short": "Cubs",
+        "since": 1876,
+        "lg": "NL",
+        "div": "Central",
+        "colors": [
+          "#0E3386",
+          "#CC3433"
+        ],
+        "bmkey": "chc",
+        "history": "Chicago Cubs",
+        "seasons": 151,
+        "thin": false,
+        "pool": [
+          243,
+          212
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/chc/v5_hitter_scores.csv",
+          "pitchers": "teams/chc/v5_pitcher_scores.csv",
+          "out": "teams/chc/v5_out.json",
+          "bat": "apexr/apexr_bat_CHC.csv",
+          "pit": "apexr/apexr_pit_CHC.csv",
+          "bonus": "bm/bonus_chc.csv",
+          "out_bm": "teams/chc/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "whitesox",
+        "code": "CHW",
+        "dir": "teams/chw",
+        "name": "Chicago White Sox",
+        "short": "White Sox",
+        "since": 1901,
+        "lg": "AL",
+        "div": "Central",
+        "colors": [
+          "#27251F",
+          "#C4CED4"
+        ],
+        "bmkey": "chw",
+        "history": "Chicago White Sox",
+        "seasons": 126,
+        "thin": false,
+        "pool": [
+          224,
+          197
+        ],
+        "military": {
+          "applilu01": [
+            1944,
+            1945
+          ],
+          "rignejo01": [
+            1942,
+            1943,
+            1944,
+            1945
+          ]
+        },
+        "dupnames": [
+          "Ed Walsh -> Ed Walsh (1904-1916)",
+          "Ed Walsh -> Ed Walsh (1928-1932)"
+        ],
+        "files": {
+          "hitters": "teams/chw/v5_hitter_scores.csv",
+          "pitchers": "teams/chw/v5_pitcher_scores.csv",
+          "out": "teams/chw/v5_out.json",
+          "bat": "apexr/apexr_bat_CHW.csv",
+          "pit": "apexr/apexr_pit_CHW.csv",
+          "bonus": "bm/bonus_chw.csv",
+          "out_bm": "teams/chw/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "reds",
+        "code": "CIN",
+        "dir": "teams/cin",
+        "name": "Cincinnati Reds",
+        "short": "Reds",
+        "since": 1882,
+        "lg": "NL",
+        "div": "Central",
+        "colors": [
+          "#C6011F",
+          "#000000"
+        ],
+        "bmkey": "cin",
+        "history": "Cincinnati Reds",
+        "seasons": 145,
+        "thin": false,
+        "pool": [
+          258,
+          212
+        ],
+        "military": {
+          "vandejo01": [
+            1944,
+            1945
+          ]
+        },
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/cin/v5_hitter_scores.csv",
+          "pitchers": "teams/cin/v5_pitcher_scores.csv",
+          "out": "teams/cin/v5_out.json",
+          "bat": "apexr/apexr_bat_CIN.csv",
+          "pit": "apexr/apexr_pit_CIN.csv",
+          "bonus": "bm/bonus_cin.csv",
+          "out_bm": "teams/cin/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "guardians",
+        "code": "CLE",
+        "dir": "teams/cle",
+        "name": "Cleveland Guardians",
+        "short": "Guardians",
+        "since": 1901,
+        "lg": "AL",
+        "div": "Central",
+        "colors": [
+          "#00385D",
+          "#E50022"
+        ],
+        "bmkey": "cle",
+        "history": "Cleveland Guardians (Indians)",
+        "seasons": 126,
+        "thin": false,
+        "pool": [
+          236,
+          203
+        ],
+        "military": {
+          "fellebo01": [
+            1942,
+            1943,
+            1944,
+            1945
+          ]
+        },
+        "dupnames": [
+          "Al Smith -> Al Smith (1940-1945)",
+          "Al Smith -> Al Smith (1953-1964)",
+          "Logan Allen -> Logan Allen (2019-2022)",
+          "Logan Allen -> Logan Allen (2023-2026)"
+        ],
+        "files": {
+          "hitters": "teams/cle/v5_hitter_scores.csv",
+          "pitchers": "teams/cle/v5_pitcher_scores.csv",
+          "out": "teams/cle/v5_out.json",
+          "bat": "apexr/apexr_bat_CLE.csv",
+          "pit": "apexr/apexr_pit_CLE.csv",
+          "bonus": "bm/bonus_cle.csv",
+          "out_bm": "teams/cle/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "rockies",
+        "code": "COL",
+        "dir": "teams/col",
+        "name": "Colorado Rockies",
+        "short": "Rockies",
+        "since": 1993,
+        "lg": "NL",
+        "div": "West",
+        "colors": [
+          "#33006F",
+          "#C4CED4"
+        ],
+        "bmkey": "col",
+        "history": "Colorado Rockies",
+        "seasons": 34,
+        "thin": true,
+        "pool": [
+          69,
+          71
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/col/v5_hitter_scores.csv",
+          "pitchers": "teams/col/v5_pitcher_scores.csv",
+          "out": "teams/col/v5_out.json",
+          "bat": "apexr/apexr_bat_COL.csv",
+          "pit": "apexr/apexr_pit_COL.csv",
+          "bonus": "bm/bonus_col.csv",
+          "out_bm": "teams/col/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "tigers",
+        "code": "DET",
+        "dir": "teams/det",
+        "name": "Detroit Tigers",
+        "short": "Tigers",
+        "since": 1901,
+        "lg": "AL",
+        "div": "Central",
+        "colors": [
+          "#0C2340",
+          "#FA4616"
+        ],
+        "bmkey": "det",
+        "history": "Detroit Tigers",
+        "seasons": 126,
+        "thin": false,
+        "pool": [
+          220,
+          193
+        ],
+        "military": {
+          "bentoal01": [
+            1943,
+            1944
+          ],
+          "truckvi01": [
+            1944,
+            1945
+          ]
+        },
+        "dupnames": [
+          "George Smith -> George Smith (1926-1929)",
+          "George Smith -> George Smith (1963-1965)"
+        ],
+        "files": {
+          "hitters": "teams/det/v5_hitter_scores.csv",
+          "pitchers": "teams/det/v5_pitcher_scores.csv",
+          "out": "teams/det/v5_out.json",
+          "bat": "apexr/apexr_bat_DET.csv",
+          "pit": "apexr/apexr_pit_DET.csv",
+          "bonus": "bm/bonus_det.csv",
+          "out_bm": "teams/det/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "astros",
+        "code": "HOU",
+        "dir": "teams/hou",
+        "name": "Houston Astros",
+        "short": "Astros",
+        "since": 1962,
+        "lg": "AL",
+        "div": "West",
+        "colors": [
+          "#002D62",
+          "#EB6E1F"
+        ],
+        "bmkey": "hou",
+        "history": "Houston Astros (Colt .45s)",
+        "seasons": 65,
+        "thin": false,
+        "pool": [
+          116,
+          128
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/hou/v5_hitter_scores.csv",
+          "pitchers": "teams/hou/v5_pitcher_scores.csv",
+          "out": "teams/hou/v5_out.json",
+          "bat": "apexr/apexr_bat_HOU.csv",
+          "pit": "apexr/apexr_pit_HOU.csv",
+          "bonus": "bm/bonus_hou.csv",
+          "out_bm": "teams/hou/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "royals",
+        "code": "KCR",
+        "dir": "teams/kcr",
+        "name": "Kansas City Royals",
+        "short": "Royals",
+        "since": 1969,
+        "lg": "AL",
+        "div": "Central",
+        "colors": [
+          "#004687",
+          "#BD9B60"
+        ],
+        "bmkey": "kcr",
+        "history": "Kansas City Royals",
+        "seasons": 58,
+        "thin": true,
+        "pool": [
+          110,
+          106
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/kcr/v5_hitter_scores.csv",
+          "pitchers": "teams/kcr/v5_pitcher_scores.csv",
+          "out": "teams/kcr/v5_out.json",
+          "bat": "apexr/apexr_bat_KCR.csv",
+          "pit": "apexr/apexr_pit_KCR.csv",
+          "bonus": "bm/bonus_kcr.csv",
+          "out_bm": "teams/kcr/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "angels",
+        "code": "LAA",
+        "dir": "teams/laa",
+        "name": "Los Angeles Angels",
+        "short": "Angels",
+        "since": 1961,
+        "lg": "AL",
+        "div": "West",
+        "colors": [
+          "#BA0021",
+          "#003263"
+        ],
+        "bmkey": "laa",
+        "history": "Los Angeles/California/Anaheim Angels",
+        "seasons": 66,
+        "thin": false,
+        "pool": [
+          138,
+          122
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/laa/v5_hitter_scores.csv",
+          "pitchers": "teams/laa/v5_pitcher_scores.csv",
+          "out": "teams/laa/v5_out.json",
+          "bat": "apexr/apexr_bat_LAA.csv",
+          "pit": "apexr/apexr_pit_LAA.csv",
+          "bonus": "bm/bonus_laa.csv",
+          "out_bm": "teams/laa/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "dodgers",
+        "code": "LAD",
+        "dir": "dodgers",
+        "name": "Los Angeles Dodgers",
+        "short": "Dodgers",
+        "since": 1884,
+        "lg": "NL",
+        "div": "West",
+        "colors": [
+          "#005A9C",
+          "#EF3E42"
+        ],
+        "bmkey": "lad",
+        "history": "Brooklyn/Los Angeles Dodgers",
+        "seasons": 143,
+        "thin": false,
+        "pool": [
+          247,
+          210
+        ],
+        "military": {
+          "reesepe01": [
+            1943,
+            1944,
+            1945
+          ],
+          "reisepe01": [
+            1943,
+            1944,
+            1945
+          ],
+          "cadorle01": [
+            1918
+          ],
+          "caseyhu01": [
+            1943,
+            1944,
+            1945
+          ],
+          "newcodo01": [
+            1952,
+            1953
+          ],
+          "pfeffje01": [
+            1918
+          ]
+        },
+        "dupnames": [
+          "Mike Marshall -> Mike Marshall (1974-1976)",
+          "Mike Marshall -> Mike Marshall (1981-1989)"
+        ],
+        "files": {
+          "hitters": "dodgers/v5_hitter_scores.csv",
+          "pitchers": "dodgers/v5_pitcher_scores.csv",
+          "out": "dodgers/v5_out.json",
+          "bat": "apexr/apexr_bat_LAD.csv",
+          "pit": "apexr/apexr_pit_LAD.csv",
+          "bonus": "bm/bonus_lad.csv",
+          "out_bm": "dodgers/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "marlins",
+        "code": "MIA",
+        "dir": "teams/mia",
+        "name": "Miami Marlins",
+        "short": "Marlins",
+        "since": 1993,
+        "lg": "NL",
+        "div": "East",
+        "colors": [
+          "#00A3E0",
+          "#EF3340"
+        ],
+        "bmkey": "mia",
+        "history": "Florida/Miami Marlins",
+        "seasons": 34,
+        "thin": true,
+        "pool": [
+          67,
+          73
+        ],
+        "military": {},
+        "dupnames": [
+          "Jes\u00fas S\u00e1nchez -> Jes\u00fas S\u00e1nchez (1998-2001)",
+          "Jes\u00fas S\u00e1nchez -> Jes\u00fas S\u00e1nchez (2020-2025)"
+        ],
+        "files": {
+          "hitters": "teams/mia/v5_hitter_scores.csv",
+          "pitchers": "teams/mia/v5_pitcher_scores.csv",
+          "out": "teams/mia/v5_out.json",
+          "bat": "apexr/apexr_bat_MIA.csv",
+          "pit": "apexr/apexr_pit_MIA.csv",
+          "bonus": "bm/bonus_mia.csv",
+          "out_bm": "teams/mia/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "brewers",
+        "code": "MIL",
+        "dir": "teams/mil",
+        "name": "Milwaukee Brewers",
+        "short": "Brewers",
+        "since": 1969,
+        "lg": "NL",
+        "div": "Central",
+        "colors": [
+          "#12284B",
+          "#FFC52F"
+        ],
+        "bmkey": "mil",
+        "history": "Seattle Pilots/Milwaukee Brewers",
+        "seasons": 58,
+        "thin": true,
+        "pool": [
+          108,
+          108
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/mil/v5_hitter_scores.csv",
+          "pitchers": "teams/mil/v5_pitcher_scores.csv",
+          "out": "teams/mil/v5_out.json",
+          "bat": "apexr/apexr_bat_MIL.csv",
+          "pit": "apexr/apexr_pit_MIL.csv",
+          "bonus": "bm/bonus_mil.csv",
+          "out_bm": "teams/mil/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "twins",
+        "code": "MIN",
+        "dir": "teams/min",
+        "name": "Minnesota Twins",
+        "short": "Twins",
+        "since": 1901,
+        "lg": "AL",
+        "div": "Central",
+        "colors": [
+          "#002B5C",
+          "#D31145"
+        ],
+        "bmkey": "min",
+        "history": "Washington Senators/Minnesota Twins",
+        "seasons": 126,
+        "thin": false,
+        "pool": [
+          237,
+          207
+        ],
+        "military": {
+          "spencst01": [
+            1945
+          ]
+        },
+        "dupnames": [
+          "Jos\u00e9 Morales -> Jos\u00e9 Morales (1978-1980)",
+          "Jos\u00e9 Morales -> Jos\u00e9 Morales (2007-2010)"
+        ],
+        "files": {
+          "hitters": "teams/min/v5_hitter_scores.csv",
+          "pitchers": "teams/min/v5_pitcher_scores.csv",
+          "out": "teams/min/v5_out.json",
+          "bat": "apexr/apexr_bat_MIN.csv",
+          "pit": "apexr/apexr_pit_MIN.csv",
+          "bonus": "bm/bonus_min.csv",
+          "out_bm": "teams/min/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "phillies",
+        "code": "PHI",
+        "dir": "teams/phi",
+        "name": "Philadelphia Phillies",
+        "short": "Phillies",
+        "since": 1883,
+        "lg": "NL",
+        "div": "East",
+        "colors": [
+          "#E81828",
+          "#002D72"
+        ],
+        "bmkey": "phi",
+        "history": "Philadelphia Phillies",
+        "seasons": 144,
+        "thin": false,
+        "pool": [
+          255,
+          214
+        ],
+        "military": {
+          "rixeyep01": [
+            1918
+          ],
+          "simmocu01": [
+            1951
+          ]
+        },
+        "dupnames": [
+          "Cliff Lee -> Cliff Lee (1921-1924)",
+          "Cliff Lee -> Cliff Lee (2009-2014)"
+        ],
+        "files": {
+          "hitters": "teams/phi/v5_hitter_scores.csv",
+          "pitchers": "teams/phi/v5_pitcher_scores.csv",
+          "out": "teams/phi/v5_out.json",
+          "bat": "apexr/apexr_bat_PHI.csv",
+          "pit": "apexr/apexr_pit_PHI.csv",
+          "bonus": "bm/bonus_phi.csv",
+          "out_bm": "teams/phi/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "padres",
+        "code": "SDP",
+        "dir": "teams/sdp",
+        "name": "San Diego Padres",
+        "short": "Padres",
+        "since": 1969,
+        "lg": "NL",
+        "div": "West",
+        "colors": [
+          "#2F241D",
+          "#FFC425"
+        ],
+        "bmkey": "sdp",
+        "history": "San Diego Padres",
+        "seasons": 58,
+        "thin": true,
+        "pool": [
+          112,
+          105
+        ],
+        "military": {},
+        "dupnames": [
+          "Dave Roberts -> Dave Roberts (1969-1971)",
+          "Dave Roberts -> Dave Roberts (1972-1978)"
+        ],
+        "files": {
+          "hitters": "teams/sdp/v5_hitter_scores.csv",
+          "pitchers": "teams/sdp/v5_pitcher_scores.csv",
+          "out": "teams/sdp/v5_out.json",
+          "bat": "apexr/apexr_bat_SDP.csv",
+          "pit": "apexr/apexr_pit_SDP.csv",
+          "bonus": "bm/bonus_sdp.csv",
+          "out_bm": "teams/sdp/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "mariners",
+        "code": "SEA",
+        "dir": "teams/sea",
+        "name": "Seattle Mariners",
+        "short": "Mariners",
+        "since": 1977,
+        "lg": "AL",
+        "div": "West",
+        "colors": [
+          "#0C2C56",
+          "#005C5C"
+        ],
+        "bmkey": "sea",
+        "history": "Seattle Mariners",
+        "seasons": 50,
+        "thin": true,
+        "pool": [
+          94,
+          101
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/sea/v5_hitter_scores.csv",
+          "pitchers": "teams/sea/v5_pitcher_scores.csv",
+          "out": "teams/sea/v5_out.json",
+          "bat": "apexr/apexr_bat_SEA.csv",
+          "pit": "apexr/apexr_pit_SEA.csv",
+          "bonus": "bm/bonus_sea.csv",
+          "out_bm": "teams/sea/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "giants",
+        "code": "SFG",
+        "dir": "teams/sfg",
+        "name": "San Francisco Giants",
+        "short": "Giants",
+        "since": 1883,
+        "lg": "NL",
+        "div": "West",
+        "colors": [
+          "#27251F",
+          "#FD5A1E"
+        ],
+        "bmkey": "sfg",
+        "history": "New York/San Francisco Giants",
+        "seasons": 144,
+        "thin": false,
+        "pool": [
+          253,
+          218
+        ],
+        "military": {
+          "mizejo01": [
+            1943,
+            1944,
+            1945
+          ]
+        },
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/sfg/v5_hitter_scores.csv",
+          "pitchers": "teams/sfg/v5_pitcher_scores.csv",
+          "out": "teams/sfg/v5_out.json",
+          "bat": "apexr/apexr_bat_SFG.csv",
+          "pit": "apexr/apexr_pit_SFG.csv",
+          "bonus": "bm/bonus_sfg.csv",
+          "out_bm": "teams/sfg/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "cardinals",
+        "code": "STL",
+        "dir": "cardinals",
+        "name": "St. Louis Cardinals",
+        "short": "Cardinals",
+        "since": 1882,
+        "lg": "NL",
+        "div": "Central",
+        "colors": [
+          "#C41E3A",
+          "#0C2340"
+        ],
+        "bmkey": "stl",
+        "history": "St. Louis Cardinals",
+        "seasons": 145,
+        "thin": false,
+        "pool": [
+          259,
+          219
+        ],
+        "military": {
+          "musiast01": [
+            1945
+          ],
+          "slaugen01": [
+            1943,
+            1944,
+            1945
+          ],
+          "dicksmu01": [
+            1944,
+            1945
+          ],
+          "laniema01": [
+            1945
+          ],
+          "mizelvi01": [
+            1954,
+            1955
+          ]
+        },
+        "dupnames": [],
+        "files": {
+          "hitters": "cardinals/v5_hitter_scores.csv",
+          "pitchers": "cardinals/v5_pitcher_scores.csv",
+          "out": "cardinals/v5_out.json",
+          "bat": "apexr/apexr_bat_STL.csv",
+          "pit": "apexr/apexr_pit_STL.csv",
+          "bonus": "bm/bonus_stl.csv",
+          "out_bm": "cardinals/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "rays",
+        "code": "TBR",
+        "dir": "teams/tbr",
+        "name": "Tampa Bay Rays",
+        "short": "Rays",
+        "since": 1998,
+        "lg": "AL",
+        "div": "East",
+        "colors": [
+          "#092C5C",
+          "#8FBCE6"
+        ],
+        "bmkey": "tbr",
+        "history": "Tampa Bay (Devil) Rays",
+        "seasons": 29,
+        "thin": true,
+        "pool": [
+          66,
+          75
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/tbr/v5_hitter_scores.csv",
+          "pitchers": "teams/tbr/v5_pitcher_scores.csv",
+          "out": "teams/tbr/v5_out.json",
+          "bat": "apexr/apexr_bat_TBR.csv",
+          "pit": "apexr/apexr_pit_TBR.csv",
+          "bonus": "bm/bonus_tbr.csv",
+          "out_bm": "teams/tbr/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "rangers",
+        "code": "TEX",
+        "dir": "teams/tex",
+        "name": "Texas Rangers",
+        "short": "Rangers",
+        "since": 1961,
+        "lg": "AL",
+        "div": "West",
+        "colors": [
+          "#003278",
+          "#C0111F"
+        ],
+        "bmkey": "tex",
+        "history": "Washington Senators (1961-71)/Texas Rangers",
+        "seasons": 66,
+        "thin": false,
+        "pool": [
+          127,
+          131
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/tex/v5_hitter_scores.csv",
+          "pitchers": "teams/tex/v5_pitcher_scores.csv",
+          "out": "teams/tex/v5_out.json",
+          "bat": "apexr/apexr_bat_TEX.csv",
+          "pit": "apexr/apexr_pit_TEX.csv",
+          "bonus": "bm/bonus_tex.csv",
+          "out_bm": "teams/tex/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "bluejays",
+        "code": "TOR",
+        "dir": "teams/tor",
+        "name": "Toronto Blue Jays",
+        "short": "Blue Jays",
+        "since": 1977,
+        "lg": "AL",
+        "div": "East",
+        "colors": [
+          "#134A8E",
+          "#1D2D5C"
+        ],
+        "bmkey": "tor",
+        "history": "Toronto Blue Jays",
+        "seasons": 50,
+        "thin": true,
+        "pool": [
+          100,
+          93
+        ],
+        "military": {},
+        "dupnames": [],
+        "files": {
+          "hitters": "teams/tor/v5_hitter_scores.csv",
+          "pitchers": "teams/tor/v5_pitcher_scores.csv",
+          "out": "teams/tor/v5_out.json",
+          "bat": "apexr/apexr_bat_TOR.csv",
+          "pit": "apexr/apexr_pit_TOR.csv",
+          "bonus": "bm/bonus_tor.csv",
+          "out_bm": "teams/tor/v5_out_bm.json"
+        }
+      },
+      {
+        "key": "nationals",
+        "code": "WSN",
+        "dir": "teams/wsn",
+        "name": "Washington Nationals",
+        "short": "Nationals",
+        "since": 1969,
+        "lg": "NL",
+        "div": "East",
+        "colors": [
+          "#AB0003",
+          "#14225A"
+        ],
+        "bmkey": "wsn",
+        "history": "Montreal Expos/Washington Nationals",
+        "seasons": 58,
+        "thin": false,
+        "pool": [
+          124,
+          116
+        ],
+        "military": {},
+        "dupnames": [
+          "Henry Rodr\u00edguez -> Henry Rodr\u00edguez (1995-2002)",
+          "Henry Rodr\u00edguez -> Henry Rodr\u00edguez (2011-2013)"
+        ],
+        "files": {
+          "hitters": "teams/wsn/v5_hitter_scores.csv",
+          "pitchers": "teams/wsn/v5_pitcher_scores.csv",
+          "out": "teams/wsn/v5_out.json",
+          "bat": "apexr/apexr_bat_WSN.csv",
+          "pit": "apexr/apexr_pit_WSN.csv",
+          "bonus": "bm/bonus_wsn.csv",
+          "out_bm": "teams/wsn/v5_out_bm.json"
+        }
+      }
+    ],
+    "pack": {
+      "format": "ll-pack-1",
+      "teams": [
+        "mets",
+        "yankees",
+        "pirates",
+        "diamondbacks",
+        "athletics",
+        "braves",
+        "orioles",
+        "redsox",
+        "cubs",
+        "whitesox",
+        "reds",
+        "guardians",
+        "rockies",
+        "tigers",
+        "astros",
+        "royals",
+        "angels",
+        "dodgers",
+        "marlins",
+        "brewers",
+        "twins",
+        "phillies",
+        "padres",
+        "mariners",
+        "giants",
+        "cardinals",
+        "rays",
+        "rangers",
+        "bluejays",
+        "nationals"
+      ]
+    }
+  }
+}

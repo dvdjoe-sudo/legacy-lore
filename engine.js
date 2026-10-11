@@ -89,6 +89,9 @@ function withCity(team,city){
  delete t._S;delete t._P;delete t._bmT; return t;
 }
 // ---------- engine ----------
+function slotValue(h,pos){return pos==='DH'?h.offAPEX:h['v_'+pos];}
+function dhSwapGain(dh,fielder,pos){return slotValue(dh,pos)+slotValue(fielder,'DH')-slotValue(fielder,pos)-slotValue(dh,'DH');}
+function dhSwapEligible(dh,fielder,pos,minGap=1){const gap=dh['rf150_'+pos]-fielder['rf150_'+pos],gain=dhSwapGain(dh,fielder,pos);return Number.isFinite(gap)&&gap>=Math.max(1,minGap)&&Number.isFinite(gain)&&gain>0;}
 function build(team,pins){
   const reviewed=team.cityUnavailable?{pins:pins||{},warnings:[]}:reviewPins(team,pins); pins=reviewed.pins; const warnings=reviewed.warnings; const HF=new Set(team.hfloat||[]);
   const benchSize=[5,6,7].includes(pins.rules?.bench_size)?pins.rules.bench_size:5,penSize=12-benchSize;
@@ -124,7 +127,7 @@ function build(team,pins){
   const gt=(a,b)=>a[0]!==b[0]?a[0]>b[0]:a[1]>b[1];
   cand.forEach((h,i)=>{ const nw=new Map(dp);
     for(const [mask,[s,t,l]] of dp){ for(let j=0;j<9;j++){ const p=POS9[j];
-      if(!((mask>>j)&1)&&start_ok(h,p)){ const m2=mask|(1<<j); const v=[s+h['v_'+p],t+h.total]; const cur=nw.get(m2)||[-1e9,-1e9];
+      if(!((mask>>j)&1)&&start_ok(h,p)){ const m2=mask|(1<<j); const v=[s+slotValue(h,p),t+h.total]; const cur=nw.get(m2)||[-1e9,-1e9];
         if(gt(v,cur)) nw.set(m2,[v[0],v[1],l.concat([[p,i]])]); } } }
     dp=nw; });
   let bestMask=511, bestVal=dp.get(511);
@@ -138,22 +141,22 @@ function build(team,pins){
   if(DHR&&start.DH&&!('DH' in pinned_start)){
     const D0=start.DH, k=DHR.k!==undefined?DHR.k:3, mg=DHR.min_gap!==undefined?DHR.min_gap:1.0;
     const contested=POS.filter(p=>!(p in pinned_start)&&start[p]&&start_ok(D0,p));
-    const pool=[[D0,'DH']].concat(contested.map(p=>[start[p],p])).map((x,i)=>[x,i]).sort((a,b)=>(-a[0][0].dhAPEX)-(-b[0][0].dhAPEX)||a[1]-b[1]).map(x=>x[0]).slice(0,k);
-    dhrule_log.push(`candidates (top ${k} by DH-Prod among the DH and starters at positions he is eligible for): `+pool.map(([h,q])=>`${h.name} (${q}, DH-Prod ${f1(h.dhAPEX)})`).join(', '));
+    const pool=[[D0,'DH']].concat(contested.map(p=>[start[p],p])).map((x,i)=>[x,i]).sort((a,b)=>(-a[0][0].offAPEX)-(-b[0][0].offAPEX)||a[1]-b[1]).map(x=>x[0]).slice(0,k);
+    dhrule_log.push(`candidates (top ${k} by Off-APEX among the DH and starters at positions he is eligible for): `+pool.map(([h,q])=>`${h.name} (${q}, Off-APEX ${f1(h.offAPEX)})`).join(', '));
     if(pool.some(([h,q])=>q==='DH')){ let best=null;
       for(const [h,q] of pool){ if(q==='DH') continue; const gap=D0['rf150_'+q]-h['rf150_'+q];
-        dhrule_log.push(`${q}: ${D0.name} ${p1(D0['rf150_'+q])}/150 vs ${h.name} ${p1(h['rf150_'+q])}/150 (gap ${p1(gap)}); value change if swapped ${p1(D0['v_'+q]+h.dhAPEX-h['v_'+q]-D0.dhAPEX)} W`);
-        const gain=D0['v_'+q]+h.dhAPEX-h['v_'+q]-D0.dhAPEX;
-        if(Number.isFinite(gap)&&gap>=Math.max(1,mg)&&Number.isFinite(gain)&&gain>0&&(best===null||gain>best[0])) best=[gain,q,h]; }
+        dhrule_log.push(`${q}: ${D0.name} ${p1(D0['rf150_'+q])}/150 vs ${h.name} ${p1(h['rf150_'+q])}/150 (gap ${p1(gap)}); value change if swapped ${p1(D0['v_'+q]+h.offAPEX-h['v_'+q]-D0.offAPEX)} W`);
+        const gain=dhSwapGain(D0,h,q);
+        if(dhSwapEligible(D0,h,q,mg)&&(best===null||gain>best[0])) best=[gain,q,h]; }
       if(best){ const [gain,q,h]=best; start[q]=D0; start.DH=h;
-        dhswap={pos:q,fld:D0.name,dh:h.name,r_f:D0['rf150_'+q],r_d:h['rf150_'+q],cost:h['v_'+q]+D0.dhAPEX-D0['v_'+q]-h.dhAPEX};
+        dhswap={pos:q,fld:D0.name,dh:h.name,r_f:D0['rf150_'+q],r_d:h['rf150_'+q],cost:h['v_'+q]+D0.offAPEX-D0['v_'+q]-h.offAPEX};
         dhrule_log.push(`SWAP: ${D0.name} plays ${q}, ${h.name} DHs (better glove fields)`);
       } else dhrule_log.push(`no swap: no eligible swap improves net team value with a glove gap >= ${f1(Math.max(1,mg))} runs/150`);
     }
   }
   for(const p of POS){ const h=start[p]; if(!h) continue; const mp=most_played(h);
     guard_log.push(`${p}: ${h.name} - ${trunc(gpos(h,p))} of ${trunc(h.G_team)} franchise G (${f0(100*gpos(h,p)/Math.max(h.G_team,1))}%) at ${(p==='LF'||p==='RF')?'LF/RF':p}; most-played ${mp==='LF'?'LF/RF':mp}`+((p in pinned_start)?' (pinned)':'')); }
-  const rawTeamValue=pySum(POS9.filter(p=>start[p]).map(p=>start[p]['v_'+p]));
+  const rawTeamValue=pySum(POS9.filter(p=>start[p]).map(p=>slotValue(start[p],p)));
   const TEAM_RUNS=Number.isFinite(rawTeamValue)?rawTeamValue:null;
   if(TEAM_RUNS===null) warnings.push({kind:'value',name:'Starting nine',slot:'VALUE',message:'Team value unavailable: an acknowledged position exception has no approved score at that position. The player choice is preserved; no score is estimated.',informational:true});
   const tie_log=[];
@@ -176,15 +179,15 @@ function build(team,pins){
   const dh=start.DH; let R=[], R2=[], dh_table=[]; const r1=x=>npRound(x,1);
   if(dh){
     used.add(dh.name);
-    { const ex=new Set(used); ex.delete(dh.name); R=sortBy(S.filter(x=>!ex.has(x.name)),'dhAPEX',false); }
+    { const ex=new Set(used); ex.delete(dh.name); R=sortBy(S.filter(x=>!ex.has(x.name)),'offAPEX',false); }
     R2=R.filter(x=>x.name!==dh.name);
-    let better_bats=POS.map(p=>start[p]).filter(x=>x&&x.dhAPEX>dh.dhAPEX); if(dhswap) better_bats=[];
-    if('DH' in pinned_start) rec('DH',dh,`DH-Prod ${f1(dh.dhAPEX)} W (hitting only); total ${f1(dh.total)}, #${dh.total_rank}`,'DH','pinned by Joseph','Fan override');
-    else rec('DH',dh,`DH-Prod ${f1(dh.dhAPEX)} W (0.25 bat + 0.40 OPS+ runs + 0.35 power runs + replacement; no fielding); DH-Prod + baserunning (reference only) ${f1(dh.dhbrAPEX)}; pure Hit-APEX ${f1(dh.batAPEX)}; total ${f1(dh.total)}, #${dh.total_rank})`,'DH chosen jointly with the 8 fielders (max team runs)',
-      R2.length?`best bench bats: ${R2[0].name} ${f1(R2[0].dhAPEX)}${R2[1]?`, ${R2[1].name} ${f1(R2[1].dhAPEX)}`:''}`:'no bench bats left',
-      dhswap?`DH glove rule: weaker glove DHs (${dhswap.dh} ${p1(dhswap.r_d)}/150 at ${dhswap.pos} vs ${dhswap.fld} ${p1(dhswap.r_f)}); cost ${f1(dhswap.cost)} W`:(better_bats.length?better_bats.map(x=>`${x.name} out-hits him (DH-Prod ${f0(x.dhAPEX)}) but adds more as a fielder`).join('; '):null));
-    if(!('DH' in pinned_start)&&!dhswap&&R2[0]) close('DH',dh.name,dh.dhAPEX,R2[0].name,R2[0].dhAPEX,'DH-Prod (W)');
-    dh_table=R.slice(0,8).map(x=>({name:x.name,dhAPEX:r1(x.dhAPEX),dhbrAPEX:r1(x.dhbrAPEX),batAPEX:r1(x.batAPEX),dhAPEX_wp:r1(x.dhAPEX_wp),batAPEX_wp:r1(x.batAPEX_wp),rbat600:r1(x.rbat600),total:r1(x.total)}));
+    let better_bats=POS.map(p=>start[p]).filter(x=>x&&x.offAPEX>dh.offAPEX); if(dhswap) better_bats=[];
+    if('DH' in pinned_start) rec('DH',dh,`DH slot value ${f1(dh.offAPEX)} W = Off-APEX (same hitting, baserunning and playing-time credit as a fielder); DH-Prod ${f1(dh.dhAPEX)} is a hitting-only reference`,'DH','pinned by Joseph','Fan override');
+    else rec('DH',dh,`DH slot value ${f1(dh.offAPEX)} W = Off-APEX; defense 0. DH-Prod ${f1(dh.dhAPEX)} is a hitting-only reference`,'DH chosen jointly with the 8 fielders (max team runs)',
+      R2.length?`best bench bats: ${R2[0].name} ${f1(R2[0].offAPEX)}${R2[1]?`, ${R2[1].name} ${f1(R2[1].offAPEX)}`:''}`:'no bench bats left',
+      dhswap?`DH glove rule: weaker glove DHs (${dhswap.dh} ${p1(dhswap.r_d)}/150 at ${dhswap.pos} vs ${dhswap.fld} ${p1(dhswap.r_f)}); cost ${f1(dhswap.cost)} W`:(better_bats.length?better_bats.map(x=>`${x.name} has higher offensive value (Off-APEX ${f0(x.offAPEX)}) but adds more as a fielder`).join('; '):null));
+    if(!('DH' in pinned_start)&&!dhswap&&R2[0]) close('DH',dh.name,dh.offAPEX,R2[0].name,R2[0].offAPEX,'Off-APEX at DH (W)');
+    dh_table=R.slice(0,8).map(x=>({name:x.name,offAPEX:r1(x.offAPEX),dhAPEX:r1(x.dhAPEX),dhbrAPEX:r1(x.dhbrAPEX),batAPEX:r1(x.batAPEX),dhAPEX_wp:r1(x.dhAPEX_wp),batAPEX_wp:r1(x.batAPEX_wp),rbat600:r1(x.rbat600),total:r1(x.total)}));
   }
   // bench
   const bench={}; const rest=()=>sortBy(S.filter(x=>!used.has(x.name)),'total',false);
@@ -384,6 +387,6 @@ function withBM(team){
   const t=Object.assign({},team,{hitters,pitchers,py:team.py_bm,bmOn:true,base:team}); delete t._S; delete t._P; delete t._bmT;
   Object.defineProperty(team,'_bmT',{value:t,enumerable:false,writable:true}); return t;
 }
-const API={build,fmt,POS,POS9,POSADJ,withBM,withCity,reviewPins,longQualification};
+const API={slotValue,dhSwapGain,dhSwapEligible,build,fmt,POS,POS9,POSADJ,withBM,withCity,reviewPins,longQualification};
 if(typeof module!=='undefined'&&module.exports) module.exports=API; else root.LLEngine=API;
 })(typeof window!=='undefined'?window:globalThis);

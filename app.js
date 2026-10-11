@@ -3,7 +3,7 @@
 (function(){
 'use strict';
 const D=window.LL_DATA, E=window.LLEngine, $=s=>document.querySelector(s);
-const APP_UI='v2.0';   // app UI version (data/app_version from export_app_data.py stays as exported)
+const APP_UI='v2.1';   // app UI version (data/app_version from export_app_data.py stays as exported)
 const CMP=window.LLCompare, CHG=window.LL_CHANGES||null;
 // v1.9: the engine writes "pinned by Joseph" into fan-override receipts (kept for JS == Python parity); the UI shows it neutrally for every user
 const neutral=s=>String(s==null?'':s).replace(/pinned by Joseph/g,'pinned by you');
@@ -13,7 +13,7 @@ const num=v=>v===null||v===undefined||Number.isNaN(v)?null:v;
 const fx=(v,d=1)=>num(v)===null?'–':E.fmt(v,d);
 const obp=v=>num(v)===null?'–':E.fmt(v,3).replace(/^0\./,'.');
 const BENCH_SLOTS=['C2','UTIL-IF','OF4','BAT','BAT2','BAT3'];   // FLEX is not pinnable (engine_v5.py has no FLEX pin path)
-const SLOT_NAME={C:'Catcher','1B':'First base','2B':'Second base','3B':'Third base',SS:'Shortstop',LF:'Left field',CF:'Center field',RF:'Right field',DH:'Designated hitter',C2:'Backup catcher','UTIL-IF':'Utility infielder',OF4:'4th outfielder',FLEX:'Flex',BAT:'Bench bat',
+const SLOT_NAME={C:'Catcher','1B':'First base','2B':'Second base','3B':'Third base',SS:'Shortstop',LF:'Left field',CF:'Center field',RF:'Right field',DH:'Designated hitter',C2:'Backup catcher','UTIL-IF':'Utility infielder',OF4:'4th outfielder',FLEX:'Flex',BAT:'Bench bat',BAT2:'Bench bat 2',BAT3:'Bench bat 3',
   SP1:'Starter 1',SP2:'Starter 2',SP3:'Starter 3',SP4:'Starter 4',SP5:'Starter 5',CL:'Closer',SU1:'Setup 1',SU2:'Setup 2',LHS:'Lefty specialist',LONG:'Long relief',MID1:'Middle relief 1',MID2:'Middle relief 2',MID3:'Middle relief 3'};
 const KEYS=['start','bench','rotation','pen','lineup','log','hfix','dh_table','pen_q','rot_scores','pit_omit','close_calls','rot_log','pen_log','pit_tie_log','dh_rule_log','dh_swap','team_runs','guard_log','util_failed'];
 const TEAM=k=>D.teams.find(t=>t.key===k);
@@ -54,14 +54,24 @@ function withCity(t0){
 }
 // ---------- pins ----------
 const pkey=k=>'ll_pins_v1_'+k;
-function loadPins(k){ try{ return JSON.parse(localStorage.getItem(pkey(k))||'{}'); }catch(e){ return {}; } }
+const PIN_ERRORS={};
+const record=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+function loadPins(k){
+ delete PIN_ERRORS[k];
+ try{
+  const value=localStorage.getItem(pkey(k));if(value===null)return {};
+  const p=JSON.parse(value);
+  if(!record(p)||['roster','staff','lineup','rules'].some(x=>x in p&&!record(p[x]))||('acknowledged' in p&&(!Array.isArray(p.acknowledged)||p.acknowledged.some(x=>typeof x!=='string'))))throw new Error('Invalid settings structure');
+  return p;
+ }catch(e){PIN_ERRORS[k]='Saved roster settings could not be read. Showing the default roster; the original saved data is retained. Copy the saved data for recovery or explicitly reset it before making new selections.';return {};}
+}
 function savePins(k,p){ try{ localStorage.setItem(pkey(k),JSON.stringify(p)); }catch(e){} }
 function cleanPins(t,raw){ return {pins:raw||{},dropped:[]}; }
 const pinCount=p=>['roster','lineup','staff'].reduce((a,k)=>a+Object.keys(p[k]||{}).length,0)+Object.keys(p.rules||{}).length;
 // ---------- state ----------
 let CUR=null; // {t, raw, pins, dropped, o}
 function compute(k){ const t0=TEAM(k), t=teamFor(withCity(t0)); const raw=loadPins(k); const c=cleanPins(t,raw); const o=E.build(t,c.pins); CUR={t,t0,raw,pins:c.pins,dropped:c.dropped,o,city:t.city||null}; return CUR; }
-function setPins(fn){ const k=CUR.t.key; const p=JSON.parse(JSON.stringify(CUR.raw)); fn(p);
+function setPins(fn){ const k=CUR.t.key; if(PIN_ERRORS[k]){toast('Reset or recover unreadable saved settings first');return false;} const p=JSON.parse(JSON.stringify(CUR.raw)); fn(p);
   const review=E.build(CUR.t,p);
   const issues=review.warnings.filter(w=>!w.acknowledged&&!w.informational);
   const replaced=['roster','staff','lineup'].flatMap(kind=>Object.entries(CUR.raw[kind]||{}).filter(([n,v])=>p[kind]?.[n]!==v&&Object.entries(p[kind]||{}).some(([m,w])=>m!==n&&w===v)).map(([n,v])=>n+' ('+v+')'));
@@ -104,7 +114,7 @@ function nav(view){ const k=CUR&&CUR.t.key;
 }
 function vHome(){ CUR=null; nav('home');
   return `<div class="panel" style="border-radius:10px"><h1>All-time franchise clubhouses</h1>
-  <p>Each 26-man roster is built by the Legacy Lore engine <b>${esc(D.version)}</b> (APEX-R, no WAR inside the scores), with a receipt for every pick. Tap a team, then any player for his scores at every position, why he made it (or didn't), Close Calls, and fan-override pins.</p>
+  <p>Each 26-man roster is built by the Legacy Lore engine <b>${esc(D.version)}</b> (APEX-R, custom player scores), with a receipt for every pick. Tap a team, then any player for his scores at every position, why he made it (or didn't), Close Calls, and fan-override pins.</p>
   ${bmSwitch()}${GROUPS.map(([lg,dv])=>`<h2 class="grp">${lg==='AL'?'American':'National'} League ${dv}</h2><div class="homegrid">${byGroup(lg,dv).map(t=>{ const o=homeVals(t); return `<a class="teamcard" href="#/${t.key}" style="background:linear-gradient(135deg,${t.colors[0]},${t.colors[0]} 60%,${t.colors[1]})"><h2>${esc(t.name)}</h2>
    <p class="small">${esc(t.history)} · since ${t.since} (${t.seasons} seasons)</p><p>${t.pool[0]} hitters · ${t.pool[1]} pitchers in the pool ${thinTag(t)}</p><p>SP1 ${esc(o.rotation.SP1)} · CL ${esc(o.pen.CL)}</p><p>Nine-starter value ${f1(o.team_runs)} W · ${o.close_calls.length} Close Call${o.close_calls.length===1?'':'s'}</p></a>`;}).join('')}</div>`).join('')}
   ${verifyBanner()}</div>`; }
@@ -115,7 +125,7 @@ function bmSwitch(){ return `<div class="bmswitch"><label><input type="checkbox"
 function bmBanner(){ if(!BMON||CUR.t.cityUnavailable) return ''; const a=E.build(CUR.city?E.withCity(CUR.t0,CUR.city):CUR.t0,{}), b=E.build(CUR.t,{}); const ch=[];
   for(const sec of ['start','bench','rotation','pen']) for(const s of Object.keys(a[sec])) if(a[sec][s]!==b[sec][s]) ch.push(`${s}: ${a[sec][s]} → ${b[sec][s]}`);
   return LLPlain.banner(`<div class="banner bm"><b>Big Moments ON</b>: October (positive-only, cap min(${D.bm.caps.oct_w.toFixed(1)} W, ${Math.round(D.bm.caps.oct_pct*100)}% of APEX)) + two-way Clutch (shrunk, cap ±${D.bm.caps.cl_w.toFixed(1)} W / ${Math.round(D.bm.caps.cl_pct*100)}%) are added to every score. Engine picks vs default ${esc(D.version)}: ${ch.length?ch.map(x=>`<span class="pill">${esc(x)}</span>`).join(' '):'no roster or role changes'}; nine-starter value ${f1(b.team_runs)} W vs ${f1(a.team_runs)} W.</div>`); }
-function pinBanner(){ if(CUR.t.cityUnavailable)return '<div class="banner">Saved overrides are retained; city assignments cannot be evaluated until city-scoped data is recovered.</div>'; const p=CUR.pins; const n=pinCount(p); const dr=CUR.dropped.length?`<div class="small muted">Ignored stale pins: ${esc(CUR.dropped.join(', '))}</div>`:'';
+function pinBanner(){ if(PIN_ERRORS[CUR.t.key])return `<div class="banner"><button class="btn" data-act="recover-settings">Copy original saved settings</button> <button class="btn" data-act="reset-settings">Reset unreadable settings</button></div>`; if(CUR.t.cityUnavailable)return '<div class="banner">Saved overrides are retained; city assignments cannot be evaluated until city-scoped data is recovered.</div>'; const p=CUR.pins; const n=pinCount(p); const dr=CUR.dropped.length?`<div class="small muted">Ignored stale pins: ${esc(CUR.dropped.join(', '))}</div>`:'';
   if(!n) return dr?`<div class="banner">${dr}</div>`:'';
   const items=[]; for(const [a,s] of Object.entries(p.roster||{})) items.push(`${esc(a)} → ${esc(s)}`); for(const [a,s] of Object.entries(p.lineup||{})) items.push(`${esc(a)} bats #${s}`);
   for(const [a,s] of Object.entries(p.staff||{})) items.push(`${esc(a)} → ${s==='ROT'?'rotation':s==='PEN'?'bullpen':s}`); if(p.rules&&p.rules.dh_defense_first===false) items.push('DH glove rule OFF'); if(p.rules&&p.rules.primary_pos_guard===false) items.push('start guard OFF');
@@ -126,12 +136,13 @@ function pinBanner(){ if(CUR.t.cityUnavailable)return '<div class="banner">Saved
 const POSXY={C:[50,90],'1B':[77,64],'2B':[64,43],'3B':[23,64],SS:[36,43],LF:[17,24],CF:[50,12],RF:[83,24],DH:[86,90]};
 function field(){ const o=CUR.o;
   return `<div class="field"><svg viewBox="0 0 100 86" preserveAspectRatio="none" aria-hidden="true"><path d="M50 84 L2 36 Q50 -14 98 36 Z" fill="#3d7f46"/><path d="M50 80 L28 58 L50 36 L72 58 Z" fill="#c99a63"/><path d="M50 74 L34 58 L50 42 L66 58 Z" fill="#3d7f46"/><circle cx="50" cy="58" r="3" fill="#c99a63"/></svg>
-  ${POS9.map(p=>{const n=o.start[p]; if(!n) return `<div class="fp gap" style="left:${POSXY[p][0]}%;top:${POSXY[p][1]}%"><b>${p}</b><span class="muted">empty</span></div>`; const h=hitter(n); return `<div class="fp" style="left:${POSXY[p][0]}%;top:${POSXY[p][1]}%" data-swap="${p}" title="Tap to swap"><b>${p}</b>${esc(n)}<br><span class="muted">${f1(h['v_'+p])} W</span></div>`;}).join('')}</div>
+  ${POS9.map(p=>{const n=o.start[p]; if(!n) return `<div class="fp gap" style="left:${POSXY[p][0]}%;top:${POSXY[p][1]}%"><b>${p}</b><span class="muted">empty</span></div>`; const h=hitter(n); return `<div class="fp" style="left:${POSXY[p][0]}%;top:${POSXY[p][1]}%" data-swap="${p}" title="Tap to swap"><b>${p}</b>${esc(n)}<br><span class="muted">${f1(E.slotValue(h,p))} W</span></div>`;}).join('')}</div>
   <p class="small muted" style="text-align:center">Tap a position to swap (shows win cost). Tap a name in the tables for the full card.</p>`; }
 function cityPicker(t0){ const cities=citiesFor(t0); if(cities.length<2) return ''; const cur=loadCity(t0.key);
   return `<label class="small">City <select id="citypick" data-act="city"><option value="" ${!cur?'selected':''}>Full franchise</option>${cities.map(c=>`<option value="${esc(c.key)}" ${cur===c.key?'selected':''}>${esc(c.city)} (${c.years[0]}–${c.years[1]})</option>`).join('')}</select></label>`; }
 function gapsBanner(){
  const messages=[];
+ if(PIN_ERRORS[CUR.t.key]) messages.push(PIN_ERRORS[CUR.t.key]);
  if(CUR.city) messages.push('Full franchise stats; assigned to the city with the most franchise games. Includes all APEX and Big Moments components.');
  if(CUR.t.cityUnavailable) messages.push('City roster unavailable: this repository has no city-specific APEX score tables or complete scoring inputs. Full-franchise statistics are not used as city statistics.');
  else if(CUR.o.gaps?.length) messages.push('Unfilled roster roles: '+CUR.o.gaps.join(', '));
@@ -141,23 +152,25 @@ function gapsBanner(){
 function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; const ob=o._objs;
   const logBy=s=>o.log.find(l=>l.slot===s);
   const lineup=o.lineup.map(l=>{ const h=hitter(l.name); const lg=logBy(l.pos);
+    const defense=l.pos==='DH'||!(gpos(h,l.pos)>0)||num(h['rf150_'+l.pos])===null?'–':p1(h['rf150_'+l.pos]);
+    const speed=num(h.rbr600)===null?'–':p1(h.rbr600);
     return `<tr class="click" data-card="h" data-n="${esc(l.name)}"><td class="slot">${l.slot}</td><td><span class="pos">${l.pos}</span> <span class="name">${esc(l.name)}</span> <span class="muted small">${esc(l.bats)}</span>${pinTag(l.name)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}${LLPlain.lineupNote(l)}</td>
-     <td class="n">${obp(l.OBP)}</td><td class="n hide-s">${obp(l.SLG)}</td><td class="n hide-s">${l.OBPplus}</td><td class="n hide-s">${l.ISOplus}</td><td class="n">${fx(l.bat600)}</td><td class="n">${f1(h['v_'+l.pos])}</td></tr>`;}).join('');
+     <td class="n hide-s">${obp(l.OBP)}</td><td class="n hide-s">${obp(l.SLG)}</td><td class="n hide-s">${l.OBPplus}</td><td class="n hide-s">${fx(l.bat600)}</td><td class="n" data-lineup-defense>${defense}</td><td class="n" data-lineup-speed>${speed}</td><td class="n">${f1(E.slotValue(h,l.pos))}</td></tr>`;}).join('');
   const benchRows=Object.entries(o.bench).map(([s,n])=>{ const h=hitter(n); const lg=logBy(s); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="h" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(h.pos)}</span>${pinTag(n)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(lg?neutral(lg.fit):'')}</div></td><td class="n">${f1(h.total)}</td><td class="n hide-s">#${h.total_rank}</td></tr>`;}).join('');
   const rotRows=Object.entries(o.rotation).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.SPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${Math.round(p.IP)}</td></tr>`;}).join('');
   const penRows=Object.entries(o.pen).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s==='LONG'&&E.longQualification(t,p).sp6?'LONG / SP6':s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.RPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.KBB,2)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${p.SV}</td></tr>`;}).join('');
   const cc=o.close_calls.length?o.close_calls.map(c=>`<li><b>${esc(c.slot)}</b>: ${nm(c.pick,hitter(c.pick)?'h':'p')} ${c.pick_v} vs ${nm(c.alt,hitter(c.alt)?'h':'p')} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</li>`).join(''):'<li class="muted">No Close Calls on this roster.</li>';
   const on26=new Set([...Object.values(o.start),...Object.values(o.bench)]);
-  const omitH=E_sorted(t._S.filter(h=>!on26.has(h.name)),'total').slice(0,8).map(h=>{ let best=null; for(const p of POS9){ if(!startOk(h,p)) continue; const v=h['v_'+p]; if(Number.isNaN(v)) continue; if(!best||v>best[1]) best=[p,v]; }
-    const who=best?o.start[best[0]]:null; const wv=best?hitter(who)['v_'+best[0]]:null;
+  const omitH=E_sorted(t._S.filter(h=>!on26.has(h.name)),'total').slice(0,8).map(h=>{ let best=null; for(const p of POS9){ if(!startOk(h,p)) continue; const v=E.slotValue(h,p); if(Number.isNaN(v)) continue; if(!best||v>best[1]) best=[p,v]; }
+    const who=best?o.start[best[0]]:null; const wv=best?E.slotValue(hitter(who),best[0]):null;
     return `<tr class="click" data-card="h" data-n="${esc(h.name)}"><td><span class="name">${esc(h.name)}</span> <span class="muted small">${esc(h.pos)}</span></td><td class="n">${f1(h.total)} <span class="muted small">#${h.total_rank}</span></td><td class="small">${best?`best start: ${best[0]} ${f1(best[1])} W vs ${esc(who)} ${f1(wv)} W`:'no start-eligible slot'}</td></tr>`;}).join('');
   const omitP=o.pit_omit.map(x=>`<tr class="click" data-card="p" data-n="${esc(x.name)}"><td><span class="name">${esc(x.name)}</span></td><td class="n">${x.combined} <span class="muted small">#${x.p_rank}</span></td><td class="small">Starter ${x.SPx}${x.sp_ok?'':' (not SP-eligible)'} · Reliever ${x.RPx}${x.rp_ok?'':' (not RP-eligible)'} · ${x.G} G, ${x.GS} GS</td></tr>`).join('');
   const logs=[['DH glove rule',o.dh_rule_log],['Rotation',o.rot_log],['Bullpen',o.pen_log],['Pitcher 2% ties',o.pit_tie_log],['Lineup handedness',o.hfix]].filter(x=>x[1]&&x[1].length);
   return `<div class="panel"><div class="teamhead"><div><h1>${esc(t.name)} ${thinTag(t)}</h1><div class="meta">${esc(t.history)} · ${t.since}–2026 (${t.seasons} seasons)</div><div class="meta">All-time franchise clubhouse · engine ${esc(engLabel())} · data exported ${esc(D.exported)}</div></div>
    <div class="tools"><label class="small bmlabel"><input type="checkbox" data-act="bm" ${BMON?'checked':''}> <b>Big Moments</b></label>${cityPicker(t0)}${gapsBanner()}<button class="btn" data-act="copy">Copy roster for post</button><button class="btn" data-act="export">Export roster JSON</button><label class="small"><input type="checkbox" data-act="rule-dh" ${CUR.pins.rules&&CUR.pins.rules.dh_defense_first===false?'':'checked'}> DH glove rule</label><label class="small"><input type="checkbox" data-act="rule-guard" ${guardOn()?'checked':''}> Start guard</label></div></div>
    ${bmBanner()}${pinBanner()}
-   <div class="grid"><div>${field()}<div class="small muted" style="text-align:center">Nine-starter value <b>${f1(o.team_runs)} W</b> (value at the position each man plays; DH = DH-Prod)</div></div>
-   <div class="card"><h3>Lineup</h3><table class="lineup"><thead><tr><th></th><th>Batting order</th><th class="n">OBP</th><th class="n hide-s">SLG</th><th class="n hide-s">OBP+</th><th class="n hide-s">ISO+</th><th class="n" title="APEX-R batting runs per 600 PA">Bat/600</th><th class="n" title="Value at his slot (W)">Value</th></tr></thead><tbody>${lineup}</tbody></table></div></div>
+   <div class="grid"><div>${field()}<div class="small muted" style="text-align:center">Nine-starter value <b>${f1(o.team_runs)} W</b> (value at the position each man plays; DH = Off-APEX (same offense, no defense))</div></div>
+   <div class="card"><h3>Lineup</h3><table class="lineup"><thead><tr><th></th><th>Batting order</th><th class="n hide-s">OBP</th><th class="n hide-s">SLG</th><th class="n hide-s">OBP+</th><th class="n hide-s" title="APEX-R batting runs per 600 plate appearances">Bat/600</th><th class="n" title="Fielding runs saved above average per 150 games at his assigned position; DH has no defensive score">Defense</th><th class="n" title="Existing baserunning runs above average per 600 plate appearances; a running-value guide, not measured sprint speed">Speed</th><th class="n" title="Value at his slot (W)">Value</th></tr></thead><tbody>${lineup}</tbody></table><p class="small muted">Defense: runs saved per 150 games at this position. Speed: baserunning value per 600 plate appearances, not sprint speed. Positive is above average; DH has no defensive score.</p></div></div>
    <div class="grid"><div class="card"><h3>Bench</h3><table><thead><tr><th>Slot</th><th>Player</th><th class="n">Total</th><th class="n hide-s">Rank</th></tr></thead><tbody>${benchRows}</tbody></table></div>
    <div class="card"><h3>Rotation</h3><table><thead><tr><th>Role</th><th>Pitcher</th><th class="n">Starter</th><th class="n">Comb.</th><th class="n hide-s">ERA+</th><th class="n hide-s">IP</th></tr></thead><tbody>${rotRows}</tbody></table>
    <h3 style="margin-top:12px">Bullpen</h3><table><thead><tr><th>Role</th><th>Pitcher</th><th class="n">Reliever</th><th class="n">Comb.</th><th class="n hide-s">K/BB</th><th class="n hide-s">ERA+</th><th class="n hide-s">SV</th></tr></thead><tbody>${penRows}</tbody></table></div></div>
@@ -215,14 +228,14 @@ function E_sorted(a,k){ return a.slice().sort((x,y)=>y[k]-x[k]); }
 let SORT={hit:['total',false],pit:['total',false]}, FILT={q:'',pos:'',role:''};
 function vHit(k){ compute(k); nav('hit'); const t=CUR.t; const [sk,asc]=SORT.hit; const q=FILT.q.toLowerCase();
   let rows=t._S.filter(h=>!q||h.name.toLowerCase().includes(q)); if(FILT.pos) rows=rows.filter(h=>elig(h,FILT.pos));
-  const val=(h,c)=>c==='pval'?(FILT.pos?h['v_'+FILT.pos]:NaN):c==='conf'?t.hseasons[h.id].conf:c==='name'?h.name:c==='bm'?bmBonus('h',h):h[c];
+  const val=(h,c)=>c==='pval'?(FILT.pos?E.slotValue(h,FILT.pos):NaN):c==='conf'?t.hseasons[h.id].conf:c==='name'?h.name:c==='bm'?bmBonus('h',h):h[c];
   rows.sort((a,b)=>{ const x=val(a,sk), y=val(b,sk); if(typeof x==='string') return asc?x.localeCompare(y):y.localeCompare(x); const xn=Number.isNaN(x), yn=Number.isNaN(y); if(xn||yn) return xn-yn; return asc?x-y:y-x; });
   const cols=[['total_rank','#',1],['name','Player',0],['pos','Pos',0],['total','Total APEX',1],['offAPEX','Off-APEX',1],['dhAPEX','DH-Prod',1],['bm','Big Moments',1],...(FILT.pos?[['pval','Value at '+FILT.pos,1]]:[]),['c_PA','PA',1],['c_bat','Bat runs',1],['c_br','BR runs',1],['c_fld','Fld runs',1],['conf','Data',0]];
   const th=cols.map(([c,l,n])=>`<th class="${n?'n':''}"><a href="javascript:void 0" data-sort="hit:${c}">${esc(l)}${sk===c?(asc?' ▲':' ▼'):''}</a></th>`).join('');
   const on=r=>slotOf(r.name);
-  const body=rows.map(h=>`<tr class="click" data-card="h" data-n="${esc(h.name)}"><td class="n">${h.total_rank}</td><td><span class="name">${esc(h.name)}</span> ${on(h)?`<span class="pos">${on(h)}</span>`:''}${bmTags('h',h)}<div class="small muted">${yrs(h.name,'h')}</div></td><td>${esc(h.pos)}</td><td class="n"><b>${f1(h.total)}</b></td><td class="n">${f1(h.offAPEX)}</td><td class="n">${f1(h.dhAPEX)}</td><td class="n">${p1(bmBonus('h',h))}</td>${FILT.pos?`<td class="n">${fx(h['v_'+FILT.pos])}${startOk(h,FILT.pos)?'':' <span class="muted small" title="cannot start here (start guard)">bench</span>'}</td>`:''}<td class="n">${Math.round(h.c_PA)}</td><td class="n">${f0(h.c_bat)}</td><td class="n">${f0(h.c_br)}</td><td class="n">${f0(h.c_fld)}</td><td>${confTag(t.hseasons[h.id].conf)}</td></tr>`).join('');
+  const body=rows.map(h=>`<tr class="click" data-card="h" data-n="${esc(h.name)}"><td class="n">${h.total_rank}</td><td><span class="name">${esc(h.name)}</span> ${on(h)?`<span class="pos">${on(h)}</span>`:''}${bmTags('h',h)}<div class="small muted">${yrs(h.name,'h')}</div></td><td>${esc(h.pos)}</td><td class="n"><b>${f1(h.total)}</b></td><td class="n">${f1(h.offAPEX)}</td><td class="n">${f1(h.dhAPEX)}</td><td class="n">${p1(bmBonus('h',h))}</td>${FILT.pos?`<td class="n">${fx(E.slotValue(h,FILT.pos))}${startOk(h,FILT.pos)?'':' <span class="muted small" title="cannot start here (start guard)">bench</span>'}</td>`:''}<td class="n">${Math.round(h.c_PA)}</td><td class="n">${f0(h.c_bat)}</td><td class="n">${f0(h.c_br)}</td><td class="n">${f0(h.c_fld)}</td><td>${confTag(t.hseasons[h.id].conf)}</td></tr>`).join('');
   return `<div class="panel"><h1>${esc(t.short)} hitters</h1><div class="tools"><input type="search" id="q" placeholder="Search player" value="${esc(FILT.q)}"><select id="posf"><option value="">All positions</option>${POS.filter(p=>p!=='RF').map(p=>`<option value="${p}" ${FILT.pos===p?'selected':''}>${p==='LF'?'LF/RF (corner OF)':p} eligible</option>`).join('')}<option value="DH" ${FILT.pos==='DH'?'selected':''}>DH</option></select><span class="small muted">${rows.length} of ${t._S.length} (season floor: 3+ seasons with 100+ PA)</span></div>${bmSwitch()}
-   <div class="scroll"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div><p class="small muted">Runs columns are franchise-career APEX-R components. Value at a position = Off-APEX + Def-APEX there (DH = DH-Prod). Big Moments = October + Clutch bonus (W); it is inside the other columns only when the Big Moments switch is on (now ${BMON?'ON':'OFF'}). Tap a player for every position.</p></div>`; }
+   <div class="scroll"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div><p class="small muted">Runs columns are franchise-career APEX-R components. Value at a position = Off-APEX + Def-APEX there (DH = Off-APEX (same offense, no defense)). Big Moments = October + Clutch bonus (W); it is inside the other columns only when the Big Moments switch is on (now ${BMON?'ON':'OFF'}). Tap a player for every position.</p></div>`; }
 function vPit(k){ compute(k); nav('pit'); const t=CUR.t; const [sk,asc]=SORT.pit; const q=FILT.q.toLowerCase();
   let rows=t._P.filter(p=>!q||p.name.toLowerCase().includes(q)); if(FILT.role==='S') rows=rows.filter(p=>p.sp_ok); if(FILT.role==='R') rows=rows.filter(p=>p.rp_ok);
   const val=(p,c)=>c==='conf'?t.pseasons[p.id].conf:c==='bm'?bmBonus('p',p):p[c];
@@ -233,16 +246,17 @@ function vPit(k){ compute(k); nav('pit'); const t=CUR.t; const [sk,asc]=SORT.pit
   return `<div class="panel"><h1>${esc(t.short)} pitchers</h1><div class="tools"><input type="search" id="q" placeholder="Search pitcher" value="${esc(FILT.q)}"><select id="rolef"><option value="">All roles</option><option value="S" ${FILT.role==='S'?'selected':''}>Starter-eligible</option><option value="R" ${FILT.role==='R'?'selected':''}>Reliever-eligible</option></select><span class="small muted">${rows.length} of ${t._P.length} (season floor: 3+ seasons with 20+ IP)</span></div>${bmSwitch()}
    <div class="scroll"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div><p class="small muted">Starter / Reliever / Combined = APEX 2.2 shape on APEX-R wins from starting / relief / all innings. ✕ = not eligible for that role (rule 19a). Big Moments = October + Clutch bonus to Combined (W); inside the scores only when the switch is on (now ${BMON?'ON':'OFF'}).</p></div>`; }
 function vRules(){ CUR=null; nav('rules'); const bml=D.bm_rules.split('\n').map(l=>{ const e=esc(l); if(/^(BIG MOMENTS|CHANGE LOG)/.test(l)||/^BM\d\./.test(l)||/^What it is/.test(l)) return `<span class="h">${e}</span>`; if(l.includes('app '+D.app_version)) return `<span class="new">${e}</span>`; return e; }); const lines=D.rules.split('\n').map(l=>{ const e=esc(l); if(/^==.*==$/.test(l.trim())||/^LEGACY LORE/.test(l)) return `<span class="h">${e}</span>`; if(/^[A-Z][A-Z ]+$/.test(l.trim())&&l.trim().length>3) return `<span class="h">${e}</span>`; if(l.includes(D.version)) return `<span class="new">${e}</span>`; return e; });
-  return `<div class="panel" style="border-radius:10px"><h1>Clubhouse rules ${esc(D.version)} + Big Moments option</h1><p class="small muted">Copied verbatim from <code>${esc(D.rules_file)}</code>, including the change log and open items. Lines touched in ${esc(D.version)} are highlighted.</p><div class="tools"><button class="btn" data-act="copyrules">Copy rules</button></div><div class="rules">${lines.join('\n')}</div>
+  return `<div class="panel" style="border-radius:10px"><h1>Clubhouse rules ${esc(D.version)} + Big Moments option</h1><p class="small muted">Current DH selection uses the same Off-APEX at every batting position, plus defensive value only in the field. The one-run-per-150-games swap eligibility threshold remains. Historical rule text below is copied verbatim from <code>${esc(D.rules_file)}</code>, including the change log and open items. Lines touched in ${esc(D.version)} are highlighted.</p><div class="tools"><button class="btn" data-act="copyrules">Copy rules</button></div><div class="rules">${lines.join('\n')}</div>
    <h2 id="bigmoments">Big Moments option (app ${esc(D.app_version)}) and app change log</h2><p class="small muted">From <code>${esc(D.bm_rules_file)}</code>. The engine is ${esc(D.version)}; Big Moments is an opt-in layer on top of it (engine_v5.py with ENGINE_BM=1).</p><div class="rules">${bml.join('\n')}</div></div>`; }
 function vAbout(){ CUR=null; nav('about');
   return `<div class="panel" style="border-radius:10px"><h1>About this app</h1>
   <p><b>Engine ${esc(D.version)}</b> · data exported ${esc(D.exported)} from the engine files by <code>export_app_data.py</code>. No server: everything runs in your browser, and your pins are stored only on this device.</p>
   ${verifyBanner()}
+  <p>APEX ranks players with its own component scores and peak, prime and career blend. Its frozen source pipeline still uses WAR/WAA-derived league baselines and some historical inputs. LSI is a separate batting or pitching companion with no WAR inputs; neither sorting it nor viewing it changes your roster.</p>
   <h2>What each score means</h2><ul>
   <li><b>APEX 2.2 shape</b>: 25% Peak3 + 35% Prime5 + 40% Career, franchise seasons only (military years skipped when finding Prime5).</li>
   <li><b>Total APEX</b> (Franchise APEX): APEX shape on APEX-R season wins (batting + baserunning + fielding + position + playing-time credit).</li>
-  <li><b>Value at a position</b> = Off-APEX + Def-APEX there; <b>DH-Prod</b> = hitting-only run production (DH and bench bat).</li>
+  <li><b>Value at a position</b> = Off-APEX + Def-APEX there. At DH, the player keeps the same offense and adds no defense; <b>DH-Prod</b> = hitting-only run production (reference and bench-bat ordering).</li>
   <li><b>C-APEX</b> (catchers) = his score at C (catcher fielding = caught stealing, passed balls, Statcast framing 2015+).</li>
   <li><b>Starter / Reliever / Combined</b> for pitchers.</li>
   <li><b>Data Confidence</b> (A–D): which data era most of his franchise PA (hitters) or IP (pitchers) came from. ${Object.entries(D.tiers).map(([k,v])=>`<br>${confTag(k)} ${esc(v)}`).join('')}<br><span class="small muted">This tier label is a v1 app rule built on the engine's data-source rules. It is not an engine score and never changes a pick.</span></li>
@@ -262,12 +276,12 @@ function winCost(pins){ try{ const after=E.build(CUR.t,pins).team_runs;return CU
 function swapCands(slot){
   const o=CUR.o, t=CUR.t, base=o.team_runs; const out=[];
   if(POS9.includes(slot)){
-    const cur=o.start[slot]; const pool=E_sorted(t._S.filter(h=>startOk(h,slot)||(CUR.pins.roster&&CUR.pins.roster[h.name]===slot)), slot==='DH'?'dhAPEX':('v_'+slot)).slice(0,36);
+    const cur=o.start[slot]; const pool=E_sorted(t._S.filter(h=>startOk(h,slot)||(CUR.pins.roster&&CUR.pins.roster[h.name]===slot)), slot==='DH'?'offAPEX':('v_'+slot)).slice(0,36);
     const onNine=new Set(Object.values(o.start));
     for(const h of pool){ if(h.name===cur) continue;
       const pins=clonePins(p=>applyRosterPin(p,h.name,slot));
       const o2=E.build(t,pins); const cost=base-o2.team_runs;
-      out.push({kind:'h',name:h.name,cost,note:onNine.has(h.name)?'on the nine':(slotOf(h.name)||'off roster'),v:h[slot==='DH'?'dhAPEX':('v_'+slot)]}); }
+      out.push({kind:'h',name:h.name,cost,note:onNine.has(h.name)?'on the nine':(slotOf(h.name)||'off roster'),v:h[slot==='DH'?'offAPEX':('v_'+slot)]}); }
   } else if(['C2','UTIL-IF','OF4','BAT','BAT2','BAT3'].includes(slot)){
     const cur=o.bench[slot]; const key=['BAT','BAT2','BAT3'].includes(slot)?'dhAPEX':'total';
     for(const h of E_sorted(t._S,key).slice(0,40)){ if(h.name===cur) continue;
@@ -282,27 +296,37 @@ function swapCands(slot){
       const o2=E.build(t,pins); out.push({kind:'p',name:p.name,cost:base-o2.team_runs,note:slotOf(p.name)||'off staff',v:p.SPx}); }
   } else if(['CL','SU1','SU2','LHS','LONG','MID1','MID2'].includes(slot)){
     const cur=o.pen[slot];
-    for(const p of E_sorted(t._P.filter(x=>x.rp_ok),'RPx').slice(0,28)){ if(p.name===cur) continue;
+    for(const p of E_sorted(t._P.filter(x=>x.rp_ok||(slot==='LONG'&&E.longQualification(t,x).sp6)),'RPx').slice(0,28)){ if(p.name===cur) continue;
       const pins=clonePins(pp=>applyStaffPin(pp,p.name,slot));
       const o2=E.build(t,pins); out.push({kind:'p',name:p.name,cost:base-o2.team_runs,note:slotOf(p.name)||'off staff',v:p.RPx}); }
   }
   out.sort((a,b)=>(a.cost??99)-(b.cost??99));
   return out.slice(0,14);
 }
+function swapHitterStats(h,slot){
+  const pos=POS9.includes(slot)?slot:slot==='C2'?'C':null;
+  const defense=pos&&pos!=='DH'&&gpos(h,pos)>0&&num(h['rf150_'+pos])!==null?p1(h['rf150_'+pos]):'–';
+  const stats=[['OBP',obp(h.OBP)],['SLG',obp(h.SLG)],['OBP+',num(h.OBPplus)===null?'–':Math.trunc(h.OBPplus)],['Bat/600',fx(h.rbat600)],['Defense',defense],['Speed',num(h.rbr600)===null?'–':p1(h.rbr600)]];
+  return '<div class="swap-stats">'+stats.map(([label,value])=>`<span><small>${label}</small><b>${value}</b></span>`).join('')+'</div>';
+}
 function swapSheet(slot){
   const o=CUR.o; const cur=o.start[slot]||o.bench[slot]||o.rotation[slot]||o.pen[slot]||null;
   const kind=POS9.includes(slot)||['C2','UTIL-IF','OF4','BAT','BAT2','BAT3'].includes(slot)?'h':'p';
   const cands=swapCands(slot);
+  const currentPitcher=kind==='p'&&cur?pitcher(cur):null;const pitchKey=/^SP[1-5]$/.test(slot)?'SPx':'RPx';
   const rows=cands.map(c=>{ const cost=c.cost==null?'–':(c.cost===0?'0.0':p1(-c.cost).replace('+','+').replace('−','−')); // show gain as + when cost negative
     const gain=c.cost==null?'–':p1(-c.cost);
-    const label=c.cost==null?'n/a':(c.cost<=0.05?`<span class="tag ok">+${f1(-c.cost)} W</span>`:`<span class="tag cost">${c.cost>0?'−':'+'}${f1(Math.abs(c.cost))} W</span>`);
-    return `<tr class="click" data-act="dopin" data-kind="${c.kind==='h'?'roster':'staff'}" data-n="${esc(c.name)}" data-slot="${esc(slot)}"><td><span class="name">${esc(c.name)}</span><div class="small muted">${esc(c.note)}</div></td><td class="n">${f1(c.v)}</td><td class="n">${label}</td></tr>`; }).join('')||'<tr><td colspan="3" class="muted">No eligible alternatives in the top pool.</td></tr>';
+    const pitchDelta=currentPitcher?c.v-currentPitcher[pitchKey]:null;
+    const label=kind==='p'?(Number.isFinite(pitchDelta)?`<span class="tag">${p1(pitchDelta)} points</span>`:'Unavailable'):c.cost==null?'n/a':(c.cost<=0.05?`<span class="tag ok">+${f1(-c.cost)} W</span>`:`<span class="tag cost">${c.cost>0?'−':'+'}${f1(Math.abs(c.cost))} W</span>`);
+    return `<tr class="click" data-act="dopin" data-kind="${c.kind==='h'?'roster':'staff'}" data-n="${esc(c.name)}" data-slot="${esc(slot)}"><td><span class="name">${esc(c.name)}</span><div class="small muted">${esc(c.note)}</div>${kind==='h'?swapHitterStats(hitter(c.name),slot):''}</td><td class="n">${f1(c.v)}</td><td class="n">${label}</td></tr>`; }).join('')||'<tr><td colspan="3" class="muted">No eligible alternatives in the top pool.</td></tr>';
+  const currentRow=kind==='h'&&cur?`<tr class="swap-current"><td><span class="name">${esc(cur)}</span><div class="small muted">Current selection</div>${swapHitterStats(hitter(cur),slot)}</td><td class="n">${f1(POS9.includes(slot)?E.slotValue(hitter(cur),slot):hitter(cur)[['BAT','BAT2','BAT3'].includes(slot)?'dhAPEX':'total'])}</td><td class="n">—</td></tr>`:'';
   const clear=cur?`<button class="btn" data-act="clearslot" data-slot="${esc(slot)}" data-kind="${kind}">Clear pin at ${esc(slot)}</button>`:'';
   const cardBtn=cur?`<button class="btn" data-card="${kind}" data-n="${esc(cur)}">Open ${esc(cur)}</button>`:'';
   $('#mbody').innerHTML=`<h2 style="margin-top:0">Swap ${esc(SLOT_NAME[slot]||slot)}</h2>
-    <p class="small muted">Current: <b>${esc(cur||'(empty)')}</b>. Win cost = change in nine-starter value after the pin (negative cost = the roster gets better). Top candidates by slot score.</p>
+    <p class="small muted">Current: <b>${esc(cur||'(empty)')}</b>. ${kind==='p'?'Slot score change compares this pitcher with the current pitcher using the same Starter or Reliever APEX score. This is not a net team-value gain; other staff assignments may change after the selection.':'Win change measures only the starting nine after the selection; it does not measure bench value.'} Top candidates by slot score.</p>
     <div class="tools">${cardBtn}${clear}</div>
-    <table><thead><tr><th>Alternative</th><th class="n">Slot score</th><th class="n">Win Δ</th></tr></thead><tbody>${rows}</tbody></table>`;
+    ${kind==='h'?'<p class="small muted">Defense: fielding runs per 150 games at this position. Speed: baserunning runs per 600 plate appearances. Positive is better; a dash means no applicable position data. Bench roles without a fixed field position show no defense rate.</p>':''}
+    <table class="swap-comparison"><thead><tr><th>Player</th><th class="n">Slot score</th><th class="n">${kind==='p'?'Slot score change':'Starting-nine win change'}</th></tr></thead><tbody>${currentRow}${rows}</tbody></table>`;
   $('#modal').hidden=false;
 }
 
@@ -316,9 +340,9 @@ function card(kind,n){ if(!CUR) return; const t=CUR.t, o=CUR.o; let h=kind==='h'
     html+=receipts(lg,cc);
     const rows=['C','1B','2B','3B','SS','LF','CF','DH'].map(p=>{ const P=p==='LF'?'LF/RF':p; const g=p==='DH'?null:gpos(h,p); const e=elig(h,p), so=startOk(h,p);
       const rk=p==='DH'?null:(()=>{ const pool=t._S.filter(x=>startOk(x,p)&&!Number.isNaN(x['v_'+p])).sort((a,b)=>b['v_'+p]-a['v_'+p]); const i=pool.findIndex(x=>x.name===n); return i>=0?i+1:null; })();
-      return `<tr><td><b>${P}</b></td><td class="n">${g===null?'–':Math.round(g)}</td><td>${p==='DH'?'any':e?(so?'start + bench':'bench only'):'<span class="muted">no</span>'}</td><td class="n">${p==='DH'?'–':fx(h[p])}</td><td class="n">${p==='DH'?'–':fx(h['def_'+p],1)}</td><td class="n hide-s">${p==='DH'?'–':(g?p1(h['rf150_'+p]):'–')}</td><td class="n"><b>${fx(h['v_'+p])}</b></td><td class="n hide-s">${rk?'#'+rk:'–'}</td></tr>`;}).join('');
+      return `<tr><td><b>${P}</b></td><td class="n">${g===null?'–':Math.round(g)}</td><td>${p==='DH'?'any':e?(so?'start + bench':'bench only'):'<span class="muted">no</span>'}</td><td class="n">${p==='DH'?'–':fx(h[p])}</td><td class="n">${p==='DH'?'0.0':fx(h['def_'+p],1)}</td><td class="n hide-s">${p==='DH'?'–':(g?p1(h['rf150_'+p]):'–')}</td><td class="n"><b>${fx(E.slotValue(h,p))}</b></td><td class="n hide-s">${rk?'#'+rk:'–'}</td></tr>`;}).join('');
     html+=`<h3>Scores at each position</h3><div class="scroll" style="max-height:none"><table><thead><tr><th>Pos</th><th class="n">G</th><th>Eligible</th><th class="n" title="Total APEX prorated by games at the position">Pos APEX</th><th class="n">Def-APEX</th><th class="n hide-s">Fld/150</th><th class="n">Value (W)</th><th class="n hide-s">Team rank</th></tr></thead><tbody>${rows}</tbody></table></div>
-     <p class="small muted">Eligible = min(25% of his franchise games, 100) at the position (LF and RF pooled). Start = also 25% of his games or his most-played position (start guard). Value = Off-APEX + Def-APEX; DH = DH-Prod. Team rank = among players who may start there.</p>`;
+     <p class="small muted">Eligible = min(25% of his franchise games, 100) at the position (LF and RF pooled). Start = also 25% of his games or his most-played position (start guard). Value = Off-APEX + Def-APEX; DH = Off-APEX (same offense, no defense). Team rank = among players who may start there.</p>`;
     html+=pinUI('h',n,h);
     html+=`<h3>Seasons</h3><div class="scroll" style="max-height:280px"><table><thead><tr><th>Year</th><th class="n">G</th><th class="n">PA</th><th class="n">OPS+</th><th class="n">Bat</th><th class="n">BR</th><th class="n">Fld</th><th class="n hide-s">Pos</th><th class="n hide-s">Rep</th><th class="n">Wins</th></tr></thead><tbody>${s.seasons.map(r=>`<tr${r.q?'':' class="muted" title="under 100 PA: counts in value, not toward the 3-season rule"'}><td>${r.y}</td><td class="n">${r.G}</td><td class="n">${Math.round(r.PA)}</td><td class="n">${fx(r.OPSp,0)}</td><td class="n">${fx(r.bat)}</td><td class="n">${fx(r.br)}</td><td class="n">${fx(r.fld)}</td><td class="n hide-s">${fx(r.pos)}</td><td class="n hide-s">${fx(r.rep)}</td><td class="n"><b>${fx(r.w,2)}</b></td></tr>`).join('')}</tbody></table></div><p class="small muted">Runs, APEX-R; wins = runs ÷ runs-per-win. Grey rows have under 100 PA.</p>`;
   } else { const s=t.pseasons[h.id];
@@ -391,16 +415,18 @@ document.addEventListener('click',e=>{
     if(act==='changes'){ e.preventDefault(); changesSheet(); return; }
     if(act==='dopin'){ const kind=a.dataset.kind, n=a.dataset.n, slot=a.dataset.slot;
       const applied=setPins(p=>{ if(kind==='roster'){ p.roster=p.roster||{}; applyRosterPin(p,n,slot); } else { p.staff=p.staff||{}; applyStaffPin(p,n,/^SP/.test(slot)?'ROT':slot); } });
-      $('#modal').hidden=true; toast('Pinned '+n+' to '+slot); return; }
+      if(applied===false)return; $('#modal').hidden=true; toast('Pinned '+n+' to '+slot); return; }
     if(act==='clearslot'){ const slot=a.dataset.slot, kind=a.dataset.kind;
-      setPins(p=>{ if(kind==='h'){ p.roster=p.roster||{}; for(const [m,s] of Object.entries(p.roster)) if(s===slot) delete p.roster[m]; }
+      const applied=setPins(p=>{ if(kind==='h'){ p.roster=p.roster||{}; for(const [m,s] of Object.entries(p.roster)) if(s===slot) delete p.roster[m]; }
         else { p.staff=p.staff||{}; for(const [m,s] of Object.entries(p.staff)) if(s===slot||(s==='ROT'&&/^SP/.test(slot))||(s==='PEN'&&['CL','SU1','SU2','LHS','LONG','MID1','MID2'].includes(slot))) delete p.staff[m]; } });
-      $('#modal').hidden=true; toast('Cleared pin at '+slot); return; }
+      if(applied===false)return; $('#modal').hidden=true; toast('Cleared pin at '+slot); return; }
     if(a.tagName==='BUTTON'){
+      if(act==='recover-settings') copy(localStorage.getItem(pkey(CUR.t.key)),'Original saved settings copied');
+      if(act==='reset-settings'&&window.confirm('Reset unreadable saved roster settings for this franchise? Copy them first if you want to keep a recovery backup.')){localStorage.removeItem(pkey(CUR.t.key));compute(CUR.t.key);render();}
       if(act==='clear') setPins(p=>{ for(const k in p) delete p[k]; });
       if(act==='copy') copy(rosterText(),'Roster copied');
       if(act==='export') download(`legacy_lore_${CUR.t.key}_${D.version}${BMON?'_bigmoments':''}.json`,JSON.stringify({team:CUR.t.name,engine:engLabel(),big_moments:BMON,pins:CUR.pins,start:CUR.o.start,bench:CUR.o.bench,rotation:CUR.o.rotation,pen:CUR.o.pen,lineup:CUR.o.lineup,close_calls:CUR.o.close_calls,log:CUR.o.log.map(l=>Object.assign({},l,{fit:neutral(l.fit)})),team_runs:CUR.o.team_runs,city_statistics_available:!CUR.t.cityUnavailable,statistics_scope:CUR.city?'full-franchise':'full-franchise',city_assignment:CUR.city?'most-franchise-games':null,warnings:CUR.o.warnings||[]},null,1));
-      if(act==='pinsjson') copy(JSON.stringify(CUR.pins),'Pins JSON copied (engine_v5.py pins file)');
+      if(act==='pinsjson') copy(JSON.stringify(CUR.pins),'Saved roster settings copied');
       if(act==='copyrules') copy(D.rules,'Rules copied'); } }
   if(e.target.closest('.x')||e.target.id==='modal') $('#modal').hidden=true; });
 document.addEventListener('change',e=>{ const t=e.target;

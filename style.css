@@ -180,3 +180,12 @@ ul.chgl li{margin:3px 0}
   table.cmp .pos{min-width:30px;font-size:10.5px;padding:1px 3px;white-space:nowrap}
 }
 a.btn{text-decoration:none;display:inline-block}
+
+/* Swap comparison: keep the same key stats visible at every width. */
+.swap-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:8px 0 4px;font-variant-numeric:tabular-nums}
+.swap-stats span{display:flex;flex-direction:column;white-space:nowrap}
+.swap-stats small{color:var(--muted);font-size:11px}.swap-stats b{font-weight:500;font-size:13px}
+.swap-current td{background:var(--paper,#f5efdf)}
+.swap-comparison th:first-child{width:65%}.swap-comparison td{vertical-align:top}
+@media(max-width:560px){.swap-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.swap-comparison th{font-size:10px}.swap-comparison td{padding:7px 4px}.swap-comparison .tag{white-space:nowrap;font-size:11px}}
+.swap-comparison{table-layout:fixed;width:100%}.swap-comparison th,.swap-comparison td{overflow-wrap:anywhere}.swap-comparison th:first-child{width:58%}.swap-comparison th:nth-child(2){width:16%}.swap-comparison th:nth-child(3){width:26%}.swap-stats{min-width:0}@media(max-width:560px){.sheet{box-sizing:border-box;min-width:0}.swap-comparison th:first-child{width:54%}.swap-comparison th:nth-child(2){width:16%}.swap-comparison th:nth-child(3){width:30%}.swap-comparison .tag{padding:2px 4px}}

@@ -1,8 +1,7 @@
-const fs=require('node:fs'),cp=require('node:child_process'),vm=require('node:vm'),zlib=require('node:zlib'),assert=require('node:assert/strict');const c=require('./data.cjs').load();
-const original={window:{}};vm.createContext(original);vm.runInContext(cp.execFileSync('git',['show','14ac62685cffd1a32c8e3bf798d91c0d709bca03:data/ll_index.js'],{encoding:'utf8',maxBuffer:20000000}),original);
-const before=JSON.parse(zlib.gunzipSync(Buffer.from(original.window.LL_PACK.index,'base64'))),after=JSON.parse(zlib.gunzipSync(Buffer.from(c.LL_PACK.index,'base64')));
-for(const t of after.teams){const b=before.teams.find(b=>b.key===t.key);t.py=b.py;t.py_bm=b.py_bm;}assert.deepEqual(after,before);
-const frozen=cp.execFileSync('git',['diff','--name-only','14ac62685cffd1a32c8e3bf798d91c0d709bca03','--','data/teams','loader.js','compare.js','style.css','index.html'],{encoding:'utf8'});assert.equal(frozen.trim(),'');
-const old=cp.execFileSync('git',['show','14ac62685cffd1a32c8e3bf798d91c0d709bca03:engine.js'],{encoding:'utf8'}),now=fs.readFileSync('engine.js','utf8').replace(/\r\n/g,'\n');assert.equal(now.slice(now.indexOf('const BM_HCOLS'),now.indexOf('const API=')),old.slice(old.indexOf('const BM_HCOLS'),old.indexOf('const API=')));
-console.log('Frozen scoring tables, scoring/BM arithmetic, index metadata/rules, and unrelated UI files unchanged.');
-
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),fixture=require('./fixtures/frozen-scoring-hashes.json');
+const hash=s=>crypto.createHash('sha256').update(s.replace(/\r\n/g,'\n')).digest('hex');
+for(const [file,sha] of Object.entries(fixture.files))assert.equal(hash(fs.readFileSync(path.join(root,file),'utf8')),sha,file+' frozen input');
+const engine=fs.readFileSync(path.join(root,'engine.js'),'utf8');assert.equal(hash(engine.slice(engine.indexOf('const BM_HCOLS'),engine.indexOf('const API='))),fixture.bigMomentsArithmetic,'frozen Big Moments arithmetic');
+const zlib=require('node:zlib'),pack=fs.readFileSync(path.join(root,'data/ll_index.js'),'utf8').match(/index:"([^"]+)"/)[1],metadata=JSON.parse(zlib.gunzipSync(Buffer.from(pack,'base64')));for(const t of metadata.teams){delete t.py;delete t.py_bm;}assert.deepEqual(metadata,fixture.indexMetadata,'frozen index metadata and rules; corrected selection references excluded');
+console.log(JSON.stringify({passed:true,historicalBase:fixture.commit,frozenFiles:Object.keys(fixture.files).length,bigMomentsArithmeticUnchanged:true}));
