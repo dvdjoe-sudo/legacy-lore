@@ -189,3 +189,103 @@ a.btn{text-decoration:none;display:inline-block}
 .swap-comparison th:first-child{width:65%}.swap-comparison td{vertical-align:top}
 @media(max-width:560px){.swap-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.swap-comparison th{font-size:10px}.swap-comparison td{padding:7px 4px}.swap-comparison .tag{white-space:nowrap;font-size:11px}}
 .swap-comparison{table-layout:fixed;width:100%}.swap-comparison th,.swap-comparison td{overflow-wrap:anywhere}.swap-comparison th:first-child{width:58%}.swap-comparison th:nth-child(2){width:16%}.swap-comparison th:nth-child(3){width:26%}.swap-stats{min-width:0}@media(max-width:560px){.sheet{box-sizing:border-box;min-width:0}.swap-comparison th:first-child{width:54%}.swap-comparison th:nth-child(2){width:16%}.swap-comparison th:nth-child(3){width:30%}.swap-comparison .tag{padding:2px 4px}}
+
+/* Original CSS artwork; no third-party logos, photos or graphic assets. */
+html[data-team="yankees"]{--paper:#e8e6dd;--card:#fffcf3;--line:#b4b9bf;--muted:#536070}
+html[data-team="yankees"] body{background:repeating-linear-gradient(90deg,transparent 0 31px,rgba(19,39,67,.075) 31px 32px),#e8e6dd}
+html[data-team="yankees"] .panel{border-radius:0;border-top:4px solid #172e4c;box-shadow:0 5px 22px #172e4c18}
+.yankees-masthead{position:relative;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:30px 36px;margin:-14px -14px 20px;overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0 22px,#172e4c18 22px 23px),#f6f3e9;border-bottom:6px double #172e4c;color:#172e4c}
+.edition{font-size:10px;letter-spacing:3px;font-weight:700}.yankees-masthead h2{font:900 clamp(30px,4.7vw,57px)/.97 Georgia,serif;letter-spacing:-1px;border:0;margin:12px 0}.yankees-masthead p{font:italic 16px Georgia,serif;margin:12px 0 18px}.scorecard-stamp{font-size:10px;font-weight:700;letter-spacing:2px;border:1px solid #172e4c;padding:5px 8px;display:inline-block;transform:rotate(-2deg)}
+.original-baseball{position:relative;flex-shrink:0;width:168px;height:168px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#fffef7,#dfd9c9);box-shadow:inset -10px -12px 25px #172e4c22,6px 8px 0 #172e4c15;display:grid;place-items:center;transform:rotate(12deg)}
+.original-baseball:before,.original-baseball:after{content:"";position:absolute;top:12%;height:76%;width:40%;border:3px dashed #8c4139;border-radius:50%}.original-baseball:before{left:-14%}.original-baseball:after{right:-14%}.original-baseball span{font:700 25px/1 Georgia,serif;text-align:center;letter-spacing:2px;transform:rotate(-12deg)}
+html[data-team="yankees"] .card{border-radius:2px;border-top:3px solid #172e4c;box-shadow:2px 3px 0 #172e4c0c}html[data-team="yankees"] .card h2{letter-spacing:.4px}html[data-team="yankees"] th{background:#e5e9ed;color:#172e4c}html[data-team="yankees"] .lineup td.slot{color:#172e4c}html[data-team="yankees"] .pos{border-radius:2px}html[data-team="yankees"] .fp{border-radius:2px;border-color:#172e4c55;box-shadow:2px 2px 0 #172e4c18}
+html[data-team="yankees"] .field svg{pointer-events:none}.ace-marker{z-index:1;background:#172e4c!important;color:#fff;border-color:#fff!important;font:inherit;font-size:11px;max-width:108px}.ace-marker b{color:#e2d4a5!important;font-size:9px}.ace-marker:hover{outline:2px solid #e2d4a5}.ace-marker:focus-visible{outline:3px solid #e2d4a5}
+@media(max-width:560px){.yankees-masthead{margin:-10px -10px 16px;padding:22px 16px;gap:10px}.edition{letter-spacing:1.5px;font-size:9px}.yankees-masthead h2{font-size:32px}.yankees-masthead p{font-size:13px;max-width:180px}.scorecard-stamp{font-size:8px;letter-spacing:1px}.original-baseball{width:84px;height:84px}.original-baseball span{font-size:16px}.original-baseball:before,.original-baseball:after{border-width:2px}.ace-marker{font-size:9px;max-width:85px}}
+@media(max-width:380px){.original-baseball{position:absolute;right:-22px;top:48px;width:110px;height:110px;opacity:.13}.masthead-copy{position:relative;z-index:1}}
+
+html[data-team="yankees"] .season-sortable tbody tr:nth-child(odd){background:#edf1f6}html[data-team="yankees"] .season-sortable tbody tr:nth-child(even){background:#fffdf7}html[data-team="yankees"] .season-sortable td{border-bottom:1px solid #b8c3d1}html[data-team="yankees"] .season-sortable th{background:#132b48;color:white}.season-sort{color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;border:0;background:none;padding:3px 0;cursor:pointer}.season-sort:focus-visible{outline:2px solid #c8a85e}th[aria-sort="ascending"] .season-sort:after{content:" ↑"}th[aria-sort="descending"] .season-sort:after{content:" ↓"}
+
+/* Yankees-only cool paper and original stadium illustration preview. */
+html[data-team="yankees"]{--paper:#dce3eb;--card:#f7f9fc;--line:#b6c3d2;--muted:#516178}
+html[data-team="yankees"] body{background:repeating-linear-gradient(90deg,transparent 0 31px,rgba(19,39,67,.06) 31px 32px),linear-gradient(110deg,#cbd6e3,#e6ecf3 55%,#cbd6e3)}
+html[data-team="yankees"] .yankees-masthead{background:#e5ebf2;border-bottom-color:#172e4c}
+html[data-team="yankees"] .masthead-copy{position:relative;z-index:1;text-shadow:0 1px 3px #f4f7fb}
+html[data-team="yankees"] .panel,html[data-team="yankees"] .card{background:#f7f9fc}
+html[data-team="yankees"] th,html[data-team="yankees"] .kv div,html[data-team="yankees"] .receipt{background:#e8eef5}
+html[data-team="yankees"] .pill,html[data-team="yankees"] .fp{background:#f3f6fa}
+html[data-team="yankees"] .ace-marker{background:#172e4c;color:#fff}
+html[data-team="yankees"] .season-sortable tbody tr:nth-child(even){background:#f8fafd}
+html[data-team="yankees"] .season-sortable th{background:#132b48;color:#fff}
+
+/* Baltimore-only visual trial; scoring is unchanged. */
+html[data-team="orioles"]{--paper:#e0e2e3;--card:#fafbfc;--line:#bec3c7;--muted:#586067}
+html[data-team="orioles"] body{background:linear-gradient(120deg,#cfd2d5,#edf0f2 55%,#d4d7da)}
+html[data-team="orioles"] header{background:#202226;border-bottom:4px solid #df5d16}
+html[data-team="orioles"] .panel{background:#fafbfc;border-radius:0;border-top:4px solid #df5d16;box-shadow:0 5px 22px #20222618}
+html[data-team="orioles"] .yankees-masthead{background:#e9edef;color:#232529;border-bottom:6px double #df5d16}
+html[data-team="orioles"] .masthead-copy{position:relative;z-index:1;text-shadow:0 1px 3px #f8fafc}
+html[data-team="orioles"] .edition{color:#923a10}
+html[data-team="orioles"] .scorecard-stamp{color:#a13f0c;border-color:#a13f0c}
+html[data-team="orioles"] .card{background:#fafbfc;border-radius:0;border-top:3px solid #df5d16}
+html[data-team="orioles"] th,html[data-team="orioles"] .kv div,html[data-team="orioles"] .receipt{background:#edf0f2}
+html[data-team="orioles"] .pill,html[data-team="orioles"] .fp{background:#f6f8fa}
+html[data-team="orioles"] .lineup .slot{background:#25272a;color:#fff;border-bottom:2px solid #df5d16}
+html[data-team="orioles"] .field svg{pointer-events:none}
+html[data-team="orioles"] .ace-marker{background:#25272a;color:white;border:2px solid #df5d16;z-index:1}
+html[data-team="orioles"] .ace-marker b{color:#ffba8d}
+html[data-team="orioles"] .season-sortable tbody tr:nth-child(odd){background:#fff0e5}
+html[data-team="orioles"] .season-sortable tbody tr:nth-child(even){background:#f3f5f7}
+html[data-team="orioles"] .season-sortable th{background:#25272a;color:white;border-bottom:3px solid #df5d16}
+html[data-team="mets"]{--team-ink:#002D72;--team-main:#002D72;--team-accent:#FF5910;--team-tint:#ebeef4;--team-paper:#dbe2eb;--team-header-text:#fff;--team-art:url("assets/mets-stadium-original.webp")}
+html[data-team="yankees"]{--team-ink:#172e4c;--team-main:#172e4c;--team-accent:#172e4c;--team-tint:#eceef1;--team-paper:#dfe2e6;--team-header-text:#fff;--team-art:url("assets/yankees-stadium-original.webp")}
+html[data-team="pirates"]{--team-ink:#27251F;--team-main:#27251F;--team-accent:#FDB827;--team-tint:#eeeeed;--team-paper:#e1e0e0;--team-header-text:#fff;--team-art:url("assets/pirates-stadium-original.webp")}
+html[data-team="diamondbacks"]{--team-ink:#A71930;--team-main:#A71930;--team-accent:#E3D4AD;--team-tint:#f8edee;--team-paper:#f3dfe2;--team-header-text:#fff;--team-art:url("assets/diamondbacks-stadium-original.webp")}
+html[data-team="athletics"]{--team-ink:#003831;--team-main:#003831;--team-accent:#EFB21E;--team-tint:#ebefef;--team-paper:#dbe3e2;--team-header-text:#fff;--team-art:url("assets/athletics-stadium-original.webp")}
+html[data-team="braves"]{--team-ink:#13274F;--team-main:#13274F;--team-accent:#CE1141;--team-tint:#eceef1;--team-paper:#dee1e6;--team-header-text:#fff;--team-art:url("assets/braves-stadium-original.webp")}
+html[data-team="orioles"]{--team-ink:#25272a;--team-main:#25272a;--team-accent:#df5d16;--team-tint:#eeeeee;--team-paper:#e0e1e1;--team-header-text:#fff;--team-art:url("assets/orioles-stadium-original.webp")}
+html[data-team="redsox"]{--team-ink:#BD3039;--team-main:#BD3039;--team-accent:#0C2340;--team-tint:#faeeef;--team-paper:#f6e2e3;--team-header-text:#fff;--team-art:url("assets/redsox-stadium-original.webp")}
+html[data-team="cubs"]{--team-ink:#0E3386;--team-main:#0E3386;--team-accent:#CC3433;--team-tint:#eceff5;--team-paper:#dde2ee;--team-header-text:#fff;--team-art:url("assets/cubs-stadium-original.webp")}
+html[data-team="whitesox"]{--team-ink:#27251F;--team-main:#27251F;--team-accent:#C4CED4;--team-tint:#eeeeed;--team-paper:#e1e0e0;--team-header-text:#fff;--team-art:url("assets/whitesox-stadium-original.webp")}
+html[data-team="reds"]{--team-ink:#C6011F;--team-main:#C6011F;--team-accent:#000000;--team-tint:#faebed;--team-paper:#f7dbe0;--team-header-text:#fff;--team-art:url("assets/reds-stadium-original.webp")}
+html[data-team="guardians"]{--team-ink:#00385D;--team-main:#00385D;--team-accent:#E50022;--team-tint:#ebeff2;--team-paper:#dbe3e8;--team-header-text:#fff;--team-art:url("assets/guardians-stadium-original.webp")}
+html[data-team="rockies"]{--team-ink:#33006F;--team-main:#33006F;--team-accent:#C4CED4;--team-tint:#efebf3;--team-paper:#e2dbeb;--team-header-text:#fff;--team-art:url("assets/rockies-stadium-original.webp")}
+html[data-team="tigers"]{--team-ink:#0C2340;--team-main:#0C2340;--team-accent:#FA4616;--team-tint:#ecedf0;--team-paper:#dde0e4;--team-header-text:#fff;--team-art:url("assets/tigers-stadium-original.webp")}
+html[data-team="astros"]{--team-ink:#002D62;--team-main:#002D62;--team-accent:#EB6E1F;--team-tint:#ebeef2;--team-paper:#dbe2e9;--team-header-text:#fff;--team-art:url("assets/astros-stadium-original.webp")}
+html[data-team="royals"]{--team-ink:#004687;--team-main:#004687;--team-accent:#BD9B60;--team-tint:#ebf0f5;--team-paper:#dbe5ee;--team-header-text:#fff;--team-art:url("assets/royals-stadium-original.webp")}
+html[data-team="angels"]{--team-ink:#BA0021;--team-main:#BA0021;--team-accent:#003263;--team-tint:#f9ebed;--team-paper:#f5dbe0;--team-header-text:#fff;--team-art:url("assets/angels-stadium-original.webp")}
+html[data-team="dodgers"]{--team-ink:#005A9C;--team-main:#005A9C;--team-accent:#EF3E42;--team-tint:#ebf2f7;--team-paper:#dbe8f1;--team-header-text:#fff;--team-art:url("assets/dodgers-stadium-original.webp")}
+html[data-team="marlins"]{--team-ink:#11394f;--team-main:#11394f;--team-accent:#00a3e0;--team-tint:#eceff1;--team-paper:#dee3e6;--team-header-text:#fff;--team-art:url("assets/marlins-stadium-original.webp")}
+html[data-team="brewers"]{--team-ink:#12284B;--team-main:#12284B;--team-accent:#FFC52F;--team-tint:#eceef1;--team-paper:#dee1e6;--team-header-text:#fff;--team-art:url("assets/brewers-stadium-original.webp")}
+html[data-team="twins"]{--team-ink:#002B5C;--team-main:#002B5C;--team-accent:#D31145;--team-tint:#ebeef2;--team-paper:#dbe1e8;--team-header-text:#fff;--team-art:url("assets/twins-stadium-original.webp")}
+html[data-team="phillies"]{--team-ink:#E81828;--team-main:#E81828;--team-accent:#002D72;--team-tint:#fdedee;--team-paper:#fcdfe1;--team-header-text:#15191e;--team-art:url("assets/phillies-stadium-original.webp")}
+html[data-team="padres"]{--team-ink:#2F241D;--team-main:#2F241D;--team-accent:#FFC425;--team-tint:#eeeded;--team-paper:#e2e0df;--team-header-text:#fff;--team-art:url("assets/padres-stadium-original.webp")}
+html[data-team="mariners"]{--team-ink:#0C2C56;--team-main:#0C2C56;--team-accent:#005C5C;--team-tint:#eceef1;--team-paper:#dde1e7;--team-header-text:#fff;--team-art:url("assets/mariners-stadium-original.webp")}
+html[data-team="giants"]{--team-ink:#27251F;--team-main:#27251F;--team-accent:#FD5A1E;--team-tint:#eeeeed;--team-paper:#e1e0e0;--team-header-text:#fff;--team-art:url("assets/giants-stadium-original.webp")}
+html[data-team="cardinals"]{--team-ink:#C41E3A;--team-main:#C41E3A;--team-accent:#0C2340;--team-tint:#faedef;--team-paper:#f7dfe3;--team-header-text:#fff;--team-art:url("assets/cardinals-stadium-original.webp")}
+html[data-team="rays"]{--team-ink:#092C5C;--team-main:#092C5C;--team-accent:#8FBCE6;--team-tint:#ebeef2;--team-paper:#dde1e8;--team-header-text:#fff;--team-art:url("assets/rays-stadium-original.webp")}
+html[data-team="rangers"]{--team-ink:#003278;--team-main:#003278;--team-accent:#C0111F;--team-tint:#ebeff4;--team-paper:#dbe2ec;--team-header-text:#fff;--team-art:url("assets/rangers-stadium-original.webp")}
+html[data-team="bluejays"]{--team-ink:#134A8E;--team-main:#134A8E;--team-accent:#1D2D5C;--team-tint:#ecf1f6;--team-paper:#dee6ef;--team-header-text:#fff;--team-art:url("assets/bluejays-stadium-original.webp")}
+html[data-team="nationals"]{--team-ink:#AB0003;--team-main:#AB0003;--team-accent:#14225A;--team-tint:#f8ebeb;--team-paper:#f3dbdc;--team-header-text:#fff;--team-art:url("assets/nationals-stadium-original.webp")}
+/* Shared franchise editions: original artwork, team colors, unchanged roster engines. */
+html[data-team]:not([data-team=""]){--card:#f8fafc;--paper:var(--team-paper);--line:#bcc5cf;--muted:#536171}
+html[data-team]:not([data-team=""]) body{background:linear-gradient(110deg,var(--team-paper),#edf0f4 55%,var(--team-paper))}
+html[data-team]:not([data-team=""]) #top{background:var(--team-main);color:var(--team-header-text);border-bottom:4px solid var(--team-accent)}
+html[data-team]:not([data-team=""]) .lsi-guide{background:var(--team-ink);border-color:var(--team-accent)}
+html[data-team]:not([data-team=""]) .panel{background:#f8fafc;border-radius:0;border-top:4px solid var(--team-accent);box-shadow:0 5px 22px #14203018}
+html[data-team]:not([data-team=""]) .card{background:#f8fafc;border-radius:0;border-top:3px solid var(--team-accent)}
+html[data-team]:not([data-team=""]) .team-masthead{background:var(--team-tint);color:var(--team-ink);border-bottom:6px double var(--team-accent)}
+html[data-team]:not([data-team=""]) .team-masthead::before{content:"";position:absolute;inset:0;background-image:var(--team-art);background-size:cover;background-position:center 55%;opacity:.23;pointer-events:none}
+html[data-team]:not([data-team=""]) .masthead-copy{position:relative;z-index:1;text-shadow:0 1px 3px #f8fafc}
+html[data-team]:not([data-team=""]) .edition{color:var(--team-ink)}
+html[data-team]:not([data-team=""]) .scorecard-stamp{color:var(--team-ink);border-color:var(--team-ink)}
+html[data-team]:not([data-team=""]) th,html[data-team]:not([data-team=""]) .kv div,html[data-team]:not([data-team=""]) .receipt{background:var(--team-tint)}
+html[data-team]:not([data-team=""]) .pill,html[data-team]:not([data-team=""]) .fp{background:#f3f6fa}
+html[data-team]:not([data-team=""]) .lineup .slot{background:var(--team-ink);color:#fff;border-bottom:2px solid var(--team-accent)}
+html[data-team]:not([data-team=""]) .field svg{pointer-events:none}
+html[data-team]:not([data-team=""]) .ace-marker{background:var(--team-ink);color:#fff;border:2px solid var(--team-accent);z-index:1}
+html[data-team]:not([data-team=""]) .ace-marker b{color:#fff}
+html[data-team]:not([data-team=""]) .season-sortable tbody tr:nth-child(odd){background:var(--team-tint)}
+html[data-team]:not([data-team=""]) .season-sortable tbody tr:nth-child(even){background:#f8fafc}
+html[data-team]:not([data-team=""]) .season-sortable th{background:var(--team-ink);color:#fff;border-bottom:3px solid var(--team-accent)}
+html[data-team="yankees"] body{background:repeating-linear-gradient(90deg,transparent 0 31px,rgba(19,39,67,.06) 31px 32px),linear-gradient(110deg,#cbd6e3,#e6ecf3 55%,#cbd6e3)}
+html[data-team="yankees"] .ace-marker b{color:#ffe2a0}
