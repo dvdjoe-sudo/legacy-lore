@@ -37,7 +37,7 @@ function unpackTeam(json){ const T=JSON.parse(json); const X={}; for(const k of 
 const t0=now(); const D=JSON.parse(gunzipSync(bytes(P.index))); STATS.fallback_used=0; STATS.index_ms=Math.round(now()-t0);
 const HEAVY=['hitters','pitchers','hfloat','hseasons','pseasons','bm'];
 const byKey=new Map(D.teams.map(t=>[t.key,t])); const LOADED=new Set(), PENDING=new Map(), WAIT=new Map();
-function attach(key,json,ms0){ const t=byKey.get(key); Object.assign(t,unpackTeam(json)); LOADED.add(key); STATS.teams[key]=Math.round(now()-ms0); return t; }
+function attach(key,json,ms0){ const t=byKey.get(key); Object.assign(t,unpackTeam(json)); if(root.LLStatCorrections)root.LLStatCorrections.apply(t); LOADED.add(key); STATS.teams[key]=Math.round(now()-ms0); return t; }
 function blobFor(key){ return P.teams&&P.teams[key]; }
 function fetchScript(key){ return new Promise((res,rej)=>{ if(blobFor(key)) return res(blobFor(key)); WAIT.set(key,res);
   const s=document.createElement('script'); s.src='data/teams/'+key+'.js'; s.onerror=()=>{ WAIT.delete(key); rej(new Error('could not load data/teams/'+key+'.js')); }; document.head.appendChild(s); }); }

@@ -4,8 +4,8 @@
    not newly verified Python parity. City scoring and LONG/SP6 qualification require recovered approved sources. */
 (function(root){
 'use strict';
-const POS=['C','1B','2B','3B','SS','LF','CF','RF'], POS9=POS.concat(['DH']), FAMS=['C','1B','2B','3B','SS','LF','CF'];
-const POSADJ={C:12.5,'1B':-12.5,'2B':2.5,'3B':2.5,SS:7.5,LF:-7.5,CF:2.5,RF:-7.5,DH:-17.5};
+const POS=['C','1B','2B','3B','SS','LF','CF','RF'], POS9=POS.concat(['DH']), FAMS=['C','1B','2B','3B','SS','LF','CF','RF'];
+const POSADJ={C:27.5,'1B':2.5,'2B':17.5,'3B':17.5,SS:22.5,LF:7.5,CF:17.5,RF:7.5,DH:0};
 const SS_GLOVE_FLOOR=-5.0, ROT_MIN_HAND=1, ROT_SWAP_PCT=0.90, PEN_MIN_LHP=1, CLOSE_PCT=0.02, CLOSE_PTS=2.0, SP_MIN_GS=30, RP_MIN_G=100, PIT_TIE=0.02, HAND_CLOSE=0.05; /* v0.9.8: min 1 of each hand in rotation; 1 dedicated LHS in pen (closer does not count); LONG qualification changes blocked pending approved rule */
 // ---------- Python-exact number formatting ----------
 function exactDec(x){ // exact decimal expansion of a finite double: {neg, int:'digits', frac:'digits'}
@@ -51,7 +51,7 @@ function reviewPins(team,raw){
  raw=raw||{}; const pins={roster:{},staff:{},lineup:{},rules:raw.rules||{},acknowledged:raw.acknowledged||[]},warnings=[];
  const H=new Map(team.hitters.map(h=>[h.name,h])),P=new Map(team.pitchers.map(p=>[p.name,p]));
  const slots={roster:new Map(),staff:new Map(),lineup:new Map()}; let nr=0,np=0;
- const gp=(h,p)=>p==='LF'||p==='RF'?h.g_LF+h.g_RF:h['g_'+p];
+ const gp=(h,p)=>h['g_'+p];
  const eligible=(h,p)=>p==='DH'||(gp(h,p)>0&&gp(h,p)>=h.elig_min);
  function issue(kind,name,slot,message,structural){const key=JSON.stringify([kind,name,slot,message]);const acknowledged=!structural&&pins.acknowledged.includes(key);warnings.push({key,kind,name,slot,message,structural,acknowledged});return acknowledged;}
  for(const kind of ['roster','staff','lineup']) for(const [name,slot] of Object.entries(raw[kind]||{})){
@@ -104,7 +104,7 @@ function build(team,pins){
     return {start:{},bench:{},rotation:{},pen:{},lineup:[],log:[],hfix:[],dh_table:[],pen_q:[],rot_scores:[],pit_omit:[],close_calls:[],rot_log:[],pen_log:[],pit_tie_log:[],dh_rule_log:[],dh_swap:null,team_runs:team.cityUnavailable?null:0,cityUnavailable:!!team.cityUnavailable,guard_log:[],util_failed:[],gaps,thin:true,warnings,pins:pins||{},_objs:{start:{},bench:{},rot:[],pen:[],roles:{}}};
   }
   const byName=new Map(S.map(h=>[h.name,h]));
-  const gpos=(h,p)=>(p==='LF'||p==='RF')?h.g_LF+h.g_RF:h['g_'+p];
+  const gpos=(h,p)=>h['g_'+p];
   const elig=(h,p)=>p==='DH'?true:(gpos(h,p)>=h.elig_min&&gpos(h,p)>0);
   const rules=pins.rules||{};
   const GUARD=('primary_pos_guard' in rules)?rules.primary_pos_guard:{pct:0.25}; const GUARD_PCT=(GUARD||{}).pct!==undefined?(GUARD||{}).pct:0.25;
@@ -155,12 +155,12 @@ function build(team,pins){
     }
   }
   for(const p of POS){ const h=start[p]; if(!h) continue; const mp=most_played(h);
-    guard_log.push(`${p}: ${h.name} - ${trunc(gpos(h,p))} of ${trunc(h.G_team)} franchise G (${f0(100*gpos(h,p)/Math.max(h.G_team,1))}%) at ${(p==='LF'||p==='RF')?'LF/RF':p}; most-played ${mp==='LF'?'LF/RF':mp}`+((p in pinned_start)?' (pinned)':'')); }
+    guard_log.push(`${p}: ${h.name} - ${trunc(gpos(h,p))} of ${trunc(h.G_team)} franchise G (${f0(100*gpos(h,p)/Math.max(h.G_team,1))}%) at ${p}; most-played ${mp==='LF'?'LF/RF':mp}`+((p in pinned_start)?' (pinned)':'')); }
   const rawTeamValue=pySum(POS9.filter(p=>start[p]).map(p=>slotValue(start[p],p)));
   const TEAM_RUNS=Number.isFinite(rawTeamValue)?rawTeamValue:null;
   if(TEAM_RUNS===null) warnings.push({kind:'value',name:'Starting nine',slot:'VALUE',message:'Team value unavailable: an acknowledged position exception has no approved score at that position. The player choice is preserved; no score is estimated.',informational:true});
   const tie_log=[];
-  { const lf=start.LF, rf=start.RF; if(lf&&rf&&!('LF' in pinned_start)&&!('RF' in pinned_start)&&lf.g_RF+rf.g_LF>lf.g_LF+rf.g_RF){ start.LF=rf; start.RF=lf; } }
+ // Outfield assignments retain separately selected slots.
   const used=new Set(Object.values(start).filter(Boolean).map(h=>h.name)); for(const n of pin_names) used.add(n);
   for(const p of POS){ const h=start[p]; if(!h) continue; const ex=new Set(used); ex.delete(h.name);
     const top=sortBy(S.filter(x=>!ex.has(x.name)&&start_ok(x,p)),['v_'+p,'total'],false);
@@ -171,7 +171,7 @@ function build(team,pins){
     if(dhswap&&p===dhswap.pos) over=`DH glove rule: ${dhswap.fld} fields ${p} (${p1(dhswap.r_f)}/150 vs ${dhswap.dh} ${p1(dhswap.r_d)}/150); cost ${f1(dhswap.cost)} W vs the value-only alignment`;
     if(p in pinned_start){ rec(p,h,`${p}-APEX ${f1(h[p])} (total ${f1(h.total)})`,`starting ${p}`,'pinned by Joseph','Fan override'); continue; }
     if(best&&best.name!==h.name){ const q=Object.entries(start).filter(([q,x])=>x&&x.name===best.name).map(x=>x[0]); over=`${best.name} has a higher value at ${p} (${f0(best['v_'+p])}) but the team-runs assignment uses him at ${used.has(best.name)?q[0]:'?'}`; }
-    rec(p,h,`Value ${f1(h['v_'+p])} W = Off ${f1(h.offAPEX)} (hit ${f1(h.batAPEX)} + BR) + Def ${p1(h['def_'+p])} (fielding ${p1(h['rf150_'+p])} runs/150 + pos ${p1(POSADJ[p])}); Total ${f1(h.total)} (#${h.total_rank}); ${trunc(gpos(h,p))} G at ${(p==='LF'||p==='RF')?'LF/RF':p}`,
+    rec(p,h,`Value ${f1(h['v_'+p])} W = Off ${f1(h.offAPEX)} (hit ${f1(h.batAPEX)} + BR) + Def ${p1(h['def_'+p])} (fielding ${p1(h['rf150_'+p])} runs/150 + pos ${p1(POSADJ[p])}); Total ${f1(h.total)} (#${h.total_rank}); ${trunc(gpos(h,p))} G at ${p}`,
       `starting ${p} (eligible: >= min(25% of franchise G, 100); start guard: >= 25% of his franchise G or most-played position)`,alt?`next eligible by value: ${alt.name} ${f1(alt['v_'+p])} W`:'no eligible alternate',over);
     if(alt) close(p,h.name,h['v_'+p],alt.name,alt['v_'+p],`value at ${p} (W)`);
   }

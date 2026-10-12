@@ -289,3 +289,5 @@ html[data-team]:not([data-team=""]) .season-sortable tbody tr:nth-child(even){ba
 html[data-team]:not([data-team=""]) .season-sortable th{background:var(--team-ink);color:#fff;border-bottom:3px solid var(--team-accent)}
 html[data-team="yankees"] body{background:repeating-linear-gradient(90deg,transparent 0 31px,rgba(19,39,67,.06) 31px 32px),linear-gradient(110deg,#cbd6e3,#e6ecf3 55%,#cbd6e3)}
 html[data-team="yankees"] .ace-marker b{color:#ffe2a0}
+
+.rank-scroll{overflow-x:auto}.rank-table{width:100%;min-width:620px}.rank-team{border-left:5px solid var(--rank-color);padding-left:10px}.rank-table td{padding:12px 8px}.rank-table tr:nth-child(even){background:#f1eddf}.rank-tools label{display:flex;gap:6px;align-items:center}.rank-total{font-weight:bold;font-size:1.15em}

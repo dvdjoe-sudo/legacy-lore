@@ -3,7 +3,7 @@
 (function(){
 'use strict';
 const D=window.LL_DATA, E=window.LLEngine, $=s=>document.querySelector(s);
-const APP_UI='v2.1';   // app UI version (data/app_version from export_app_data.py stays as exported)
+const APP_UI='v2.2';   // app UI version (data/app_version from export_app_data.py stays as exported)
 const CMP=window.LLCompare, CHG=window.LL_CHANGES||null;
 // v1.9: the engine writes "pinned by Joseph" into fan-override receipts (kept for JS == Python parity); the UI shows it neutrally for every user
 const neutral=s=>String(s==null?'':s).replace(/pinned by Joseph/g,'pinned by you');
@@ -22,13 +22,13 @@ const deq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // Big Moments ON must equal engine_v5.py with ENGINE_BM=1 (exported as py_bm).
 // app v1.3: 30 teams x 2 builds take ~2 s, so the self-check runs in the background one team at a time after the first paint.
 const VERIFY={}, VERIFY_BM={}; let VDONE=0;
-function verifyOne(t){ VERIFY[t.key]=KEYS.filter(k=>!deq(E.build(t,{})[k],t.py[k])); VERIFY_BM[t.key]=KEYS.filter(k=>!deq(E.build(E.withBM(t),{})[k],t.py_bm[k])); VDONE++; }
+function verifyOne(t){ const standard=E.build(t,{}), bigMoments=E.build(E.withBM(t),{}); VERIFY[t.key]=KEYS.filter(k=>!deq(standard[k],t.py[k])); VERIFY_BM[t.key]=KEYS.filter(k=>!deq(bigMoments[k],t.py_bm[k])); VDONE++; }
 const verified=()=>VDONE===D.teams.length;
 const allOk=()=>verified()&&Object.values(VERIFY).every(v=>!v.length)&&Object.values(VERIFY_BM).every(v=>!v.length);
 // app v1.3.1: a team's data is decoded only when needed; the self-check decodes each team, checks it, and frees it again unless it is on screen (phone memory).
 function runVerify(i){ if(i>=D.teams.length){ foot(); const b=document.querySelector('.banner.vb'); if(b) b.outerHTML=verifyBanner(); return; }
   const t=D.teams[i], had=LLData.loaded(t.key);
-  LLData.ensure(t.key).then(()=>{ verifyOne(t); if(!had&&!(CUR&&CUR.t0===t)) LLData.evict(t.key); foot(); setTimeout(()=>runVerify(i+1),0); },
+  LLData.ensure(t.key).then(()=>{ verifyOne(t); if(!had&&!(CUR&&CUR.t0===t)&&!location.hash.startsWith('#/rankings')) LLData.evict(t.key); foot(); setTimeout(()=>runVerify(i+1),0); },
     e=>{ VERIFY[t.key]=['data: '+e.message]; VERIFY_BM[t.key]=VERIFY[t.key]; VDONE++; foot(); setTimeout(()=>runVerify(i+1),0); }); }
 // team picker groups (current league / division)
 const GROUPS=[['AL','East'],['AL','Central'],['AL','West'],['NL','East'],['NL','Central'],['NL','West']];
@@ -42,7 +42,7 @@ function setBM(on){ BMON=!!on; try{ localStorage.setItem(BMKEY,BMON?'1':'0'); }c
 const teamFor=t=>BMON?E.withBM(t):t;
 const engLabel=()=>BMON?D.bm.engine:D.version;
 // Preview: city pools retain full franchise scores; assignment uses most franchise games.
-const citiesFor=t=>(window.LL_CITIES&&LL_CITIES[t.code]&&LL_CITIES[t.code].cities)||[];
+const citiesFor=t=>t.key==='angels'?[]:((window.LL_CITIES&&LL_CITIES[t.code]&&LL_CITIES[t.code].cities)||[]);
 const ckey=k=>'ll_city_v1_'+k;
 const loadCity=k=>{ try{ return localStorage.getItem(ckey(k))||''; }catch(e){ return ''; } };
 const saveCity=(k,v)=>{ try{ if(v) localStorage.setItem(ckey(k),v); else localStorage.removeItem(ckey(k)); }catch(e){} };
@@ -65,7 +65,7 @@ function loadPins(k){
   return p;
  }catch(e){PIN_ERRORS[k]='Saved roster settings could not be read. Showing the default roster; the original saved data is retained. Copy the saved data for recovery or explicitly reset it before making new selections.';return {};}
 }
-function savePins(k,p){ try{ localStorage.setItem(pkey(k),JSON.stringify(p)); }catch(e){} }
+function savePins(k,p){ try{ localStorage.setItem(pkey(k),JSON.stringify(p)); return true; }catch(e){ toast("Could not save roster settings on this device. Your previous settings are retained."); return false; } }
 function cleanPins(t,raw){ return {pins:raw||{},dropped:[]}; }
 const pinCount=p=>['roster','lineup','staff'].reduce((a,k)=>a+Object.keys(p[k]||{}).length,0)+Object.keys(p.rules||{}).length;
 // ---------- state ----------
@@ -79,16 +79,16 @@ function setPins(fn){ const k=CUR.t.key; if(PIN_ERRORS[k]){toast('Reset or recov
     const message=issues.map(w=>w.name+' → '+w.slot+': '+w.message+(w.structural?' (will be rejected)':' (exception)')).concat(replaced.length?['Existing assignments removed/replaced: '+replaced.join(', ')]:[]).join('\n');
     if(!window.confirm(message+'\nExplicitly acknowledge these changes and exceptions?')){render();return false;}
     p.acknowledged=[...(p.acknowledged||[]),...issues.filter(w=>!w.structural).map(w=>w.key)];
-  } for(const s of ['roster','lineup','staff','rules']) if(p[s]&&!Object.keys(p[s]).length) delete p[s]; savePins(k,p); compute(k); render(); return true; }
+  } for(const s of ['roster','lineup','staff','rules']) if(p[s]&&!Object.keys(p[s]).length) delete p[s]; if(!savePins(k,p))return false; compute(k); render(); return true; }
 // ---------- helpers ----------
 const hitter=n=>CUR.t._S.find(h=>h.name===n), pitcher=n=>CUR.t._P.find(p=>p.name===n);
 function slotOf(n){ const o=CUR.o; for(const [s,x] of Object.entries(o.start)) if(x===n) return s; for(const [s,x] of Object.entries(o.bench)) if(x===n) return s;
-  for(const [s,x] of Object.entries(o.rotation)) if(x===n) return s; for(const [s,x] of Object.entries(o.pen)) if(x===n) return s; return null; }
-const gpos=(h,p)=>(p==='LF'||p==='RF')?h.g_LF+h.g_RF:h['g_'+p];
-const most=h=>{const F=['C','1B','2B','3B','SS','LF','CF']; let b=F[0]; for(const q of F) if(gpos(h,q)>gpos(h,b)) b=q; return b;};
+  for(const [s,x] of Object.entries(o.rotation)) if(x===n) return s; for(const [s,x] of orderedPen(o.pen)) if(x===n) return s; return null; }
+const gpos=(h,p)=>h['g_'+p];
+const most=h=>{const F=['C','1B','2B','3B','SS','LF','CF','RF']; let b=F[0]; for(const q of F) if(gpos(h,q)>gpos(h,b)) b=q; return b;};
 const elig=(h,p)=>p==='DH'||(gpos(h,p)>=h.elig_min&&gpos(h,p)>0);
 const guardOn=()=>!(CUR.pins.rules&&CUR.pins.rules.primary_pos_guard===false);
-const startOk=(h,p)=>p==='DH'||(elig(h,p)&&(!guardOn()||gpos(h,p)>=0.25*h.G_team||most(h)===((p==='LF'||p==='RF')?'LF':p)));
+const startOk=(h,p)=>p==='DH'||(elig(h,p)&&(!guardOn()||gpos(h,p)>=0.25*h.G_team||most(h)===p));
 const ccFor=n=>CUR.o.close_calls.filter(c=>c.pick===n||c.alt===n);
 const confTag=c=>`<span class="tag conf conf${c}" title="${esc(D.tiers[c])}">Data ${c}</span>`;
 const nm=(n,kind)=>`<a href="javascript:void 0" class="name" data-card="${esc(kind)}" data-n="${esc(n)}">${esc(n)}</a>`;
@@ -105,8 +105,9 @@ function bmTags(kind,x,big){ const b=bmOf(kind,x.id); if(!b) return ''; const m=
 // ---------- views ----------
 const lum=h=>{ const v=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255); return 0.2126*v[0]+0.7152*v[1]+0.0722*v[2]; };   // app v1.3: light secondary colours are darkened for text accents
 const shade=h=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.slice(i,i+2),16)*0.6).toString(16).padStart(2,'0')).join('');
+function orderedPen(pen){const order=['CL','SU1','SU2','MID1','MID2','LHS','LONG'];return Object.entries(pen).sort((a,b)=>{const i=order.indexOf(a[0]),j=order.indexOf(b[0]);return (i<0?99:i)-(j<0?99:j);});}
 function nav(view){ const k=CUR&&CUR.t.key; document.documentElement.dataset.team=k||'';
-  $('#teams').innerHTML=`<a href="#/" class="${view==='home'?'on':''}">All teams</a><select id="teampick" aria-label="Pick a team"><option value="">${k?'':'Pick a team…'}</option>${GROUPS.map(([lg,dv])=>`<optgroup label="${lg} ${dv}">${byGroup(lg,dv).map(t=>`<option value="${t.key}" ${k===t.key?'selected':''}>${esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select>`+`<a href="#/history" class="${view==='league'?'on':''}">History</a><a href="#/rules" class="${view==='rules'?'on':''}">Rules</a><a href="#/about" class="${view==='about'?'on':''}">About</a>`;
+  $('#teams').innerHTML=`<a href="#/" class="${view==='home'?'on':''}">All teams</a><select id="teampick" aria-label="Pick a team"><option value="">${k?'':'Pick a team…'}</option>${GROUPS.map(([lg,dv])=>`<optgroup label="${lg} ${dv}">${byGroup(lg,dv).map(t=>`<option value="${t.key}" ${k===t.key?'selected':''}>${esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select>`+`<a href="#/rankings" class="${view==='rankings'?'on':''}">Rankings</a><a href="#/history" class="${view==='league'?'on':''}">History</a><a href="#/rules" class="${view==='rules'?'on':''}">Rules</a><a href="#/about" class="${view==='about'?'on':''}">About</a>`;
   $('#ver').innerHTML=`Engine ${esc(engLabel())}${CHG?` · <a href="javascript:void 0" data-act="changes" class="chglink">What changed</a>`:''}`;
   $('#subnav').innerHTML=(k&&['club','cmp','hit','pit','history','almanac','lore'].includes(view))?[['club','Clubhouse',''],['cmp','Compare','/compare'],['hit','Hitters','/hitters'],['pit','Pitchers','/pitchers'],['history','History','/history'],['almanac','Almanac','/almanac'],['lore','Lore','/lore']].map(([v,l,s])=>`<a href="#/${k}${s}" class="${v===view?'on':''}${['history','almanac','lore'].includes(v)?' lt':''}">${l}</a>`).join(''):'';
   if(k){ document.documentElement.style.setProperty('--t1',CUR.t.colors[0]); document.documentElement.style.setProperty('--t2',lum(CUR.t.colors[1])>0.55?(CUR.t.colors[1]==='#C4CED3'?'#8c99a6':shade(CUR.t.colors[1])):CUR.t.colors[1]); }
@@ -170,7 +171,7 @@ function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; c
      <td class="n hide-s">${obp(l.OBP)}</td><td class="n hide-s">${obp(l.SLG)}</td><td class="n hide-s">${l.OBPplus}</td><td class="n hide-s">${fx(l.bat600)}</td><td class="n" data-lineup-defense>${defense}</td><td class="n" data-lineup-speed>${speed}</td><td class="n">${f1(E.slotValue(h,l.pos))}</td></tr>`;}).join('');
   const benchRows=Object.entries(o.bench).map(([s,n])=>{ const h=hitter(n); const lg=logBy(s); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="h" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(h.pos)}</span>${pinTag(n)}${bmTags('h',h)}${lg&&lg.close?'<span class="tag cc">Close Call</span>':''}${lg&&lg.override?'<span class="tag ov">Override</span>':''}<div class="small muted">${esc(lg?neutral(lg.fit):'')}</div></td><td class="n">${f1(h.total)}</td><td class="n hide-s">#${h.total_rank}</td></tr>`;}).join('');
   const rotRows=Object.entries(o.rotation).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.SPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${Math.round(p.IP)}</td></tr>`;}).join('');
-  const penRows=Object.entries(o.pen).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s==='LONG'&&E.longQualification(t,p).sp6?'LONG / SP6':s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.RPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.KBB,2)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${p.SV}</td></tr>`;}).join('');
+  const penRows=orderedPen(o.pen).map(([s,n])=>{ const p=pitcher(n); return `<tr><td><button type="button" class="pos swapbtn" data-swap="${esc(s)}" title="Swap this slot">${s==='LONG'&&E.longQualification(t,p).sp6?'LONG / SP6':s}</button></td><td class="click" data-card="p" data-n="${esc(n)}"><span class="name">${esc(n)}</span> <span class="muted small">${esc(p.throws)}HP</span>${pinTag(n)}${ccTag(n)}${bmTags('p',p)}</td><td class="n">${f1(p.RPx)}</td><td class="n">${f1(p.total)}</td><td class="n hide-s">${fx(p.KBB,2)}</td><td class="n hide-s">${fx(p.ERAplus,0)}</td><td class="n hide-s">${p.SV}</td></tr>`;}).join('');
   const cc=o.close_calls.length?o.close_calls.map(c=>`<li><b>${esc(c.slot)}</b>: ${nm(c.pick,hitter(c.pick)?'h':'p')} ${c.pick_v} vs ${nm(c.alt,hitter(c.alt)?'h':'p')} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</li>`).join(''):'<li class="muted">No Close Calls on this roster.</li>';
   const on26=new Set([...Object.values(o.start),...Object.values(o.bench)]);
   const omitH=E_sorted(t._S.filter(h=>!on26.has(h.name)),'total').slice(0,8).map(h=>{ let best=null; for(const p of POS9){ if(!startOk(h,p)) continue; const v=E.slotValue(h,p); if(Number.isNaN(v)) continue; if(!best||v>best[1]) best=[p,v]; }
@@ -350,11 +351,12 @@ function card(kind,n){ if(!CUR) return; const t=CUR.t, o=CUR.o; let h=kind==='h'
     <div class="kv"><div><span>Total APEX (#${h.total_rank})</span><b>${f1(h.total)}</b></div><div><span>Peak3</span><b>${f1(s.apex[0])}</b></div><div><span>Prime5</span><b>${f1(s.apex[1])}</b></div><div><span>Career</span><b>${f1(s.apex[2])}</b></div><div><span>Off-APEX</span><b>${f1(h.offAPEX)}</b></div><div><span>Hit-APEX</span><b>${f1(h.batAPEX)}</b></div><div><span>DH-Prod</span><b>${f1(h.dhAPEX)}</b></div><div><span>Career runs bat / BR / fld</span><b style="font-size:15px">${f0(h.c_bat)} / ${f0(h.c_br)} / ${f0(h.c_fld)}</b></div></div>`;
     html+=bmCard('h',h);
     html+=receipts(lg,cc);
-    const rows=['C','1B','2B','3B','SS','LF','CF','DH'].map(p=>{ const P=p==='LF'?'LF/RF':p; const g=p==='DH'?null:gpos(h,p); const e=elig(h,p), so=startOk(h,p);
-      const rk=p==='DH'?null:(()=>{ const pool=t._S.filter(x=>startOk(x,p)&&!Number.isNaN(x['v_'+p])).sort((a,b)=>b['v_'+p]-a['v_'+p]); const i=pool.findIndex(x=>x.name===n); return i>=0?i+1:null; })();
-      return `<tr><td><b>${P}</b></td><td class="n">${g===null?'–':Math.round(g)}</td><td>${p==='DH'?'any':e?(so?'start + bench':'bench only'):'<span class="muted">no</span>'}</td><td class="n">${p==='DH'?'–':fx(h[p])}</td><td class="n">${p==='DH'?'0.0':fx(h['def_'+p],1)}</td><td class="n hide-s">${p==='DH'?'–':(g?p1(h['rf150_'+p]):'–')}</td><td class="n"><b>${fx(E.slotValue(h,p))}</b></td><td class="n hide-s">${rk?'#'+rk:'–'}</td></tr>`;}).join('');
-    html+=`<h3>Scores at each position</h3><div class="scroll" style="max-height:none"><table><thead><tr><th>Pos</th><th class="n">G</th><th>Eligible</th><th class="n" title="Total APEX prorated by games at the position">Pos APEX</th><th class="n">Def-APEX</th><th class="n hide-s">Fld/150</th><th class="n">Value (W)</th><th class="n hide-s">Team rank</th></tr></thead><tbody>${rows}</tbody></table></div>
-     <p class="small muted">Eligible = min(25% of his franchise games, 100) at the position (LF and RF pooled). Start = also 25% of his games or his most-played position (start guard). Value = Off-APEX + Def-APEX; DH = Off-APEX (same offense, no defense). Team rank = among players who may start there.</p>`;
+    const defenseParts=(h,p)=>Number.isFinite(h['_glove_'+p])&&Number.isFinite(h['_position_'+p])?{glove:h['_glove_'+p],position:h['_position_'+p]}:null;
+    const rows=['C','1B','2B','3B','SS','LF','CF','RF','DH'].map(p=>{ const P=p; const dhfr={angels:'ANA',rays:'TBD',marlins:'FLA',athletics:'OAK'}[CUR.t0.key]||CUR.t0.code; const g=p==='DH'?(window.LL_DH_GAMES?.franchises?.[dhfr]?.[h.id]??null):gpos(h,p); const e=elig(h,p), so=startOk(h,p);
+      const dp=p==='DH'?null:defenseParts(h,p); const rk=p==='DH'?null:(()=>{ const pool=t._S.filter(x=>startOk(x,p)&&!Number.isNaN(x['v_'+p])).sort((a,b)=>b['v_'+p]-a['v_'+p]); const i=pool.findIndex(x=>x.name===n); return i>=0?i+1:null; })();
+      return `<tr><td><b>${P}</b></td><td class="n">${g===null?'–':Math.round(g)}</td><td>${p==='DH'?'any':e?(so?'start + bench':'bench only'):'<span class="muted">no</span>'}</td><td class="n">${p==='DH'||!e?'–':fx(h[p])}</td><td class="n">${p==='DH'?'0.0':!e?'–':dp?p1(dp.glove):'Unavailable'}</td><td class="n">${p==='DH'?'0.0':!e?'–':dp?p1(dp.position):'Unavailable'}</td><td class="n hide-s">${p==='DH'?'–':(g?p1(h['rf150_'+p]):'–')}</td><td class="n"><b>${!e?'Not eligible':fx(E.slotValue(h,p))}</b></td><td class="n hide-s">${rk?'#'+rk:'–'}</td></tr>`;}).join('');
+    html+=`<h3>Scores at each position</h3><div class="scroll" style="max-height:none"><table><thead><tr><th>Pos</th><th class="n">G</th><th>Eligible</th><th class="n" title="Total APEX prorated by games at the position">Pos APEX</th><th class="n" title="Projected glove contribution using existing APEX exposure">Glove (W)</th><th class="n" title="Positive position credit using existing APEX exposure">Position credit (W)</th><th class="n hide-s">Fld/150</th><th class="n">Value (W)</th><th class="n hide-s">Team rank</th></tr></thead><tbody>${rows}</tbody></table></div>
+     <p class="small muted">Eligible = min(25% of his franchise games, 100) at that individual position. Start = also 25% of his games or his most-played position (start guard). Glove and position adjustment are projected over franchise playing time with APEX weighting, not value earned solely in games at this position. Value = Off-APEX + glove + positive position credit; DH = Off-APEX. Ineligible slot values are hidden. Position games are regular-season appearances from Lahman through 2025 (including official tiebreakers), plus saved regular-season scoring inputs for 2026; 2026 is not independently verified. DH games are recorded full-franchise appearances from Lahman through 2025; 2026 is not included. Missing DH records show a dash. Team rank = among players who may start there.</p>`;
     html+=pinUI('h',n,h);
     html+=`<h3>Seasons</h3><div class="scroll" style="max-height:280px"><table><thead><tr><th>Year</th><th class="n">G</th><th class="n">PA</th><th class="n">OPS+</th><th class="n">Bat</th><th class="n">BR</th><th class="n">Fld</th><th class="n hide-s">Pos</th><th class="n hide-s">Rep</th><th class="n">Wins</th></tr></thead><tbody>${s.seasons.map(r=>`<tr${r.q?'':' class="muted" title="under 100 PA: counts in value, not toward the 3-season rule"'}><td>${r.y}</td><td class="n">${r.G}</td><td class="n">${Math.round(r.PA)}</td><td class="n">${fx(r.OPSp,0)}</td><td class="n">${fx(r.bat)}</td><td class="n">${fx(r.br)}</td><td class="n">${fx(r.fld)}</td><td class="n hide-s">${fx(r.pos)}</td><td class="n hide-s">${fx(r.rep)}</td><td class="n"><b>${fx(r.w,2)}</b></td></tr>`).join('')}</tbody></table></div><p class="small muted">Runs, APEX-R; wins = runs ÷ runs-per-win. Grey rows have under 100 PA.</p>`;
   } else { const s=t.pseasons[h.id];
@@ -362,11 +364,11 @@ function card(kind,n){ if(!CUR) return; const t=CUR.t, o=CUR.o; let h=kind==='h'
     <div class="kv"><div><span>Combined (#${h.p_rank})</span><b>${f1(h.total)}</b></div><div><span>Starter${h.sp_ok?'':' (not eligible)'}</span><b>${f1(h.SPx)}</b></div><div><span>Reliever${h.rp_ok?'':' (not eligible)'}</span><b>${f1(h.RPx)}</b></div><div><span>Peak3 / Prime5 / Career</span><b style="font-size:15px">${f1(s.apex[0][0])} / ${f1(s.apex[0][1])} / ${f1(s.apex[0][2])}</b></div><div><span>Franchise APEX-R wins</span><b>${f1(h.c_wins)}</b></div><div><span>Runs prevented / replacement</span><b style="font-size:15px">${f0(h.c_prev)} / ${f0(h.c_rep)}</b></div></div>`;
     html+=bmCard('p',h);
     const lines=[...o.rot_log,...o.pen_log,...o.pit_tie_log].filter(x=>x.includes(n));
-    const role=slot?(slot.startsWith('SP')?`In the rotation (${slot}): top 5 by Starter score among Starter-eligible pitchers, then min 1 LHP and 1 RHP (90% swap if needed).`:`In the bullpen (${slot}): top 7 by Reliever score among Reliever-eligible pitchers, then a dedicated lefty specialist (closer does not count as the LHS); roles by quality index (0.5 Reliever + 0.5 ERA+, z-scores), LHS by K%, LONG requires 100 franchise relief IP, three qualifying seasons and long-relief usage. The approved SP6 option also requires 300 starter IP and a place outside the selected top five starters.`):'Not on the staff.';
+    const role=slot?(slot.startsWith('SP')?`In the rotation (${slot}): top 5 by Starter score among Starter-eligible pitchers, then min 1 LHP and 1 RHP (90% swap if needed).`:`In the bullpen (${slot}): up to ${12-([5,6,7].includes(CUR.pins.rules?.bench_size)?CUR.pins.rules.bench_size:5)} by Reliever score among Reliever-eligible pitchers, then a dedicated lefty specialist (closer does not count as the LHS); roles by quality index (0.5 Reliever + 0.5 ERA+, z-scores), LHS by K%, LONG requires 100 franchise relief IP, three qualifying seasons and long-relief usage. The approved SP6 option also requires 300 starter IP and a place outside the selected top five starters.`):'Not on the staff.';
     const pq=o.pen_q.find(x=>x.name===n);
     html+=`<h3>Receipt</h3><div class="receipt"><p>${esc(role)}</p>${pq?`<p>Quality index ${f3(pq.q)} (K/BB ${pq.KBB}, ERA+ ${pq.ERAplus}, IP per game ${pq.ip_per_app})</p>`:''}${lines.map(x=>`<p>${esc(x)}</p>`).join('')}${cc.map(c=>`<p><span class="tag cc">Close Call</span> ${esc(c.slot)}: ${esc(c.pick)} ${c.pick_v} vs ${esc(c.alt)} ${c.alt_v} (${c.pct}%), ${esc(c.rule)}</p>`).join('')}</div>`;
     html+=pinUI('p',n,h);
-    html+=`<h3>Seasons</h3><div class="scroll" style="max-height:280px"><table><thead><tr><th>Year</th><th>Role</th><th class="n">G</th><th class="n">IP</th><th class="n">ERA</th><th class="n hide-s">FIP</th><th class="n hide-s">LI</th><th class="n">Wins</th></tr></thead><tbody>${s.seasons.map(r=>`<tr><td>${r.y}</td><td>${r.role==='S'?'Start':'Relief'}</td><td class="n">${r.G}</td><td class="n">${fx(r.IP)}</td><td class="n">${fx(r.ERA,2)}</td><td class="n hide-s">${fx(r.FIP,2)}</td><td class="n hide-s">${r.role==='R'?fx(r.li,2):''}</td><td class="n"><b>${fx(r.w,2)}</b></td></tr>`).join('')}</tbody></table></div>`;
+    html+=`<h3>Seasons</h3><p class="muted">ERA below is ordinary earned-run average. The approved scoring engine retains its separate adjusted runs-allowed input.</p><div class="scroll" style="max-height:280px"><table><thead><tr><th>Year</th><th>Role</th><th class="n">G</th><th class="n">IP</th><th class="n">ERA</th><th class="n hide-s">FIP</th><th class="n hide-s">LI</th><th class="n">Wins</th></tr></thead><tbody>${s.seasons.map(r=>`<tr><td>${r.y}</td><td>${r.role==='S'?'Start':'Relief'}</td><td class="n">${r.G}</td><td class="n">${fx(r.IP)}</td><td class="n">${fx(window.LLStatCorrections.era(t.code,h.id,r.y,r.role),2)}</td><td class="n hide-s">${fx(r.FIP,2)}</td><td class="n hide-s">${r.role==='R'?fx(r.li,2):''}</td><td class="n"><b>${fx(r.w,2)}</b></td></tr>`).join('')}</tbody></table></div>`;
   }
   if(window.LLCompanion) html+=LLCompanion.card(CUR,h,kind);
   if(window.LLLoreUI) html+=LLLoreUI.card(CUR.t0.key,h.id);   // v1.8: history threads, awards, league-leading lines, HOF
@@ -392,7 +394,7 @@ function pinUI(kind,n,h){ const p=CUR.pins;
 // ---------- export ----------
 function rosterText(){ const t=CUR.t,o=CUR.o; if(t.cityUnavailable)return t.name+'\nCity-specific roster and all APEX components: unavailable. Approved city inputs and scoring pipeline must be recovered.'; const L=[`ALL-TIME ${t.name.toUpperCase()} – Legacy Lore Clubhouse (engine ${engLabel()})${pinCount(CUR.pins)?' – with fan override pins':''}`,...(CUR.city?['Full franchise stats; assigned to the city with the most franchise games.']:[]),'','LINEUP'];
   for(const l of o.lineup) L.push(`${l.slot}. ${l.name} ${l.pos}`); L.push('','BENCH'); for(const [s,n] of Object.entries(o.bench)) L.push(`${s}: ${n}`);
-  L.push('','ROTATION'); for(const [s,n] of Object.entries(o.rotation)) L.push(`${s}: ${n}`); L.push('','BULLPEN'); for(const [s,n] of Object.entries(o.pen)) L.push(`${s}: ${n}`);
+  L.push('','ROTATION'); for(const [s,n] of Object.entries(o.rotation)) L.push(`${s}: ${n}`); L.push('','BULLPEN'); for(const [s,n] of orderedPen(o.pen)) L.push(`${s}: ${n}`);
   if(o.close_calls.length){ L.push('','CLOSE CALLS'); for(const c of o.close_calls) L.push(`${c.slot}: ${c.pick} ${c.pick_v} vs ${c.alt} ${c.alt_v} (${c.pct}%)`); }
   if(o.warnings?.length){L.push('','WARNINGS');for(const w of o.warnings)L.push(w.name+' / '+w.slot+': '+w.message+(w.acknowledged?' (explicitly acknowledged)':''));}
   return L.join('\n'); }
@@ -400,19 +402,22 @@ function copy(txt,msg){ const done=()=>toast(msg||'Copied'); if(navigator.clipbo
   function fallback(){ const a=document.createElement('textarea'); a.value=txt; document.body.appendChild(a); a.select(); try{document.execCommand('copy'); done();}catch(e){ prompt('Copy:',txt);} a.remove(); } }
 function toast(m){ let d=$('#toast'); if(!d){ d=document.createElement('div'); d.id='toast'; d.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d232b;color:#fff;padding:8px 14px;border-radius:8px;z-index:99;font-size:14px'; document.body.appendChild(d);} d.textContent=m; d.style.display='block'; clearTimeout(d._t); d._t=setTimeout(()=>d.style.display='none',1800); }
 function download(name,txt){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
-function foot(){ $('#foot').innerHTML=`Legacy Lore Clubhouse app ${esc(APP_UI)} · ${CHG?`<a href="javascript:void 0" data-act="changes">What changed</a> · `:''}${D.teams.length} franchises · engine ${esc(D.bm.engine)} (Big Moments ${BMON?'ON':'OFF'}) · data ${esc(D.exported)} · static build, works offline · ${!verified()?`self-check running (${VDONE}/${D.teams.length})`:allOk()?'Selection regression reference (no pins) ✓ · Big Moments ✓':'self-check FAILED'}`; }
+function foot(){ $('#foot').innerHTML=`Legacy Lore Clubhouse app ${esc(APP_UI)} · ${CHG?`<a href="javascript:void 0" data-act="changes">What changed</a> · `:''}${D.teams.length} franchises · engine ${esc(D.bm.engine)} (Big Moments ${BMON?'ON':'OFF'}) · data ${esc(D.exported)} · static build, works offline · ${!verified()?`self-check running (${VDONE}/${D.teams.length})`:allOk()?'Selection reference (JavaScript, no pins) ✓ · Big Moments ✓':'self-check FAILED'}`; }
 // ---------- router ----------
 let VIEW='';
-function render(){ const h=location.hash.replace(/^#\/?/,'').split('/'); const k=h[0]; let html;
+function render(){
+  if(location.hash.startsWith('#/rankings')&&!D.teams.every(t=>LLData.loaded(t.key))){ nav('rankings'); $('#app').innerHTML='<div class="panel"><h1>Team Rankings</h1><p>Loading all team rosters…</p></div>'; LLRankings.load().then(()=>{if(location.hash.startsWith('#/rankings'))render();},e=>{$('#app').innerHTML='<div class="banner">Rankings could not load: '+esc(e.message)+'</div>';}); return; } const h=location.hash.replace(/^#\/?/,'').split('/'); const k=h[0].split('?')[0]; let html; const jump=new URLSearchParams(location.hash.split('?')[1]||'').get('city'); if(TEAM(k)&&jump&&citiesFor(TEAM(k)).some(c=>c.key===jump)){saveCity(k,jump);location.hash='#/'+k;return;}
   if(TEAM(k)&&!LLData.loaded(k)){ const t=TEAM(k); $('#app').innerHTML=`<p class="loading">Loading ${esc(t.name)}…</p>`; foot();   // app v1.3.1: decode this team, then draw
     LLData.ensure(k).then(()=>{ if(location.hash.replace(/^#\/?/,'').split('/')[0]===k) render(); },e=>{ $('#app').innerHTML=`<div class="banner">Could not load ${esc(t.name)}: ${esc(e.message)}</div>`; }); return; }
   if(TEAM(k)){ VIEW=h[1]||''; html=VIEW==='compare'?vCompare(k):VIEW==='hitters'?vHit(k):VIEW==='pitchers'?vPit(k):['history','almanac','lore'].includes(VIEW)?vTeamLore(k,VIEW,h[2]):vClub(k); }
   else if(k==='history'){ CUR=null; nav('league'); html=LLLoreUI.league(h[1]); }
+  else if(k==='rankings'){ CUR=null; nav('rankings'); html=LLRankings.view(BMON); }
   else if(k==='rules') html=vRules(); else if(k==='about') html=vAbout(); else html=vHome();
   $('#app').innerHTML=html;
   foot();
   { const sn=$('#subnav'), on=sn&&sn.querySelector('a.on'); if(on&&sn.scrollWidth>sn.clientWidth) sn.scrollLeft=Math.max(0,on.offsetLeft-sn.offsetLeft-(sn.clientWidth-on.offsetWidth)/2); }   // phone: keep the active tab visible
   if(TEAM(k)&&VIEW==='p'&&h[2]&&CUR){ const id=decodeURIComponent(h[2]); const x=CUR.t.hitters.find(r=>r.id===id)||CUR.t.pitchers.find(r=>r.id===id); if(x) card(CUR.t.hitters.includes(x)?'h':'p',x.name); }   // #/<team>/p/<id> deep link
+  LLRankings.bind(render);
   const q=$('#q'); if(q){ q.oninput=e=>{ FILT.q=e.target.value; const pos=q.selectionStart; render(); const q2=$('#q'); q2.focus(); q2.setSelectionRange(pos,pos); }; }
   const pf=$('#posf'); if(pf) pf.onchange=e=>{ FILT.pos=e.target.value; if(FILT.pos) SORT.hit=['pval',false]; else if(SORT.hit[0]==='pval') SORT.hit=['total',false]; render(); };
   const rf=$('#rolef'); if(rf) rf.onchange=e=>{ FILT.role=e.target.value; render(); };
