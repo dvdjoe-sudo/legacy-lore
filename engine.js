@@ -169,7 +169,7 @@ function build(team,pins){
     if(hp&&hp.name!==h.name&&!elig(hp,p)) over=`${hp.name} has a higher ${p} score (${f1(hp[p])}) but only ${trunc(gpos(hp,p))} G there (< ${f0(hp.elig_min)} needed)`;
     else if(hp&&hp.name!==h.name&&!start_ok(hp,p)) over=`${hp.name} has a higher ${p} score (${f1(hp[p])}) but ${p} is only ${f0(100*gpos(hp,p)/hp.G_team)}% of his franchise games and not his most-played position (start guard)`;
     if(dhswap&&p===dhswap.pos) over=`DH glove rule: ${dhswap.fld} fields ${p} (${p1(dhswap.r_f)}/150 vs ${dhswap.dh} ${p1(dhswap.r_d)}/150); cost ${f1(dhswap.cost)} W vs the value-only alignment`;
-    if(p in pinned_start){ rec(p,h,`${p}-APEX ${f1(h[p])} (total ${f1(h.total)})`,`starting ${p}`,'pinned by Joseph','Fan override'); continue; }
+    if(p in pinned_start){ rec(p,h,`${p}-APEX ${f1(h[p])} (total ${f1(h.total)})`,`starting ${p}`,'pinned by you','Fan override'); continue; }
     if(best&&best.name!==h.name){ const q=Object.entries(start).filter(([q,x])=>x&&x.name===best.name).map(x=>x[0]); over=`${best.name} has a higher value at ${p} (${f0(best['v_'+p])}) but the team-runs assignment uses him at ${used.has(best.name)?q[0]:'?'}`; }
     rec(p,h,`Value ${f1(h['v_'+p])} W = Off ${f1(h.offAPEX)} (hit ${f1(h.batAPEX)} + BR) + Def ${p1(h['def_'+p])} (fielding ${p1(h['rf150_'+p])} runs/150 + pos ${p1(POSADJ[p])}); Total ${f1(h.total)} (#${h.total_rank}); ${trunc(gpos(h,p))} G at ${p}`,
       `starting ${p} (eligible: >= min(25% of franchise G, 100); start guard: >= 25% of his franchise G or most-played position)`,alt?`next eligible by value: ${alt.name} ${f1(alt['v_'+p])} W`:'no eligible alternate',over);
@@ -182,7 +182,7 @@ function build(team,pins){
     { const ex=new Set(used); ex.delete(dh.name); R=sortBy(S.filter(x=>!ex.has(x.name)),'offAPEX',false); }
     R2=R.filter(x=>x.name!==dh.name);
     let better_bats=POS.map(p=>start[p]).filter(x=>x&&x.offAPEX>dh.offAPEX); if(dhswap) better_bats=[];
-    if('DH' in pinned_start) rec('DH',dh,`DH slot value ${f1(dh.offAPEX)} W = Off-APEX (same hitting, baserunning and playing-time credit as a fielder); DH-Prod ${f1(dh.dhAPEX)} is a hitting-only reference`,'DH','pinned by Joseph','Fan override');
+    if('DH' in pinned_start) rec('DH',dh,`DH slot value ${f1(dh.offAPEX)} W = Off-APEX (same hitting, baserunning and playing-time credit as a fielder); DH-Prod ${f1(dh.dhAPEX)} is a hitting-only reference`,'DH','pinned by you','Fan override');
     else rec('DH',dh,`DH slot value ${f1(dh.offAPEX)} W = Off-APEX; defense 0. DH-Prod ${f1(dh.dhAPEX)} is a hitting-only reference`,'DH chosen jointly with the 8 fielders (max team runs)',
       R2.length?`best bench bats: ${R2[0].name} ${f1(R2[0].offAPEX)}${R2[1]?`, ${R2[1].name} ${f1(R2[1].offAPEX)}`:''}`:'no bench bats left',
       dhswap?`DH glove rule: weaker glove DHs (${dhswap.dh} ${p1(dhswap.r_d)}/150 at ${dhswap.pos} vs ${dhswap.fld} ${p1(dhswap.r_f)}); cost ${f1(dhswap.cost)} W`:(better_bats.length?better_bats.map(x=>`${x.name} has higher offensive value (Off-APEX ${f0(x.offAPEX)}) but adds more as a fielder`).join('; '):null));
@@ -193,7 +193,7 @@ function build(team,pins){
   const bench={}; const rest=()=>sortBy(S.filter(x=>!used.has(x.name)),'total',false);
   function take(slot,df,need,fit,why,key){ key=key||'total';
     const pn=Object.entries(RP_PINS).filter(([n,sl])=>sl===slot).map(x=>x[0]);
-    if(pn.length){ const h=byName.get(pn[0]); rec(slot,h,`total ${f1(h.total)}`,need,'pinned by Joseph','Fan override'); bench[slot]=h; return; }
+    if(pn.length){ const h=byName.get(pn[0]); rec(slot,h,`total ${f1(h.total)}`,need,'pinned by you','Fan override'); bench[slot]=h; return; }
     df=sortBy(df,key,false); if(!df.length){ if(THIN||slot==='BAT2'||slot==='BAT3') gaps.push(slot); return; } const h=df[0], t=rest()[0]||h;
     const over=t.name===h.name?null:(why?why(t,h):`${t.name} (#${t.total_rank}) higher total but doesn't fit ${slot}`);
     rec(slot,h,`total ${f1(h.total)} (#${h.total_rank})`,need,fit(h),over); used.add(h.name); bench[slot]=h;
@@ -336,7 +336,7 @@ function build(team,pins){
     { const a=zs(L.map(x=>x.SBrate)), b=zs(L.map(x=>x.rbr600)), c=zs(L.map(x=>x.OBPplus)); L.forEach((x,i)=>{ x.bat=x.rbat600; x.speed=a[i]+b[i]; x.lead=0.7*c[i]+0.3*x.speed; }); }
     const B=sortBy(L,['bat','OBPplus'],false); const LP={}; for(const [n,k] of Object.entries(pins.lineup||{})){if(L.some(x=>x.name===n)&&k<=L.length) LP[n]=trunc(k);else warnings.push({kind:'lineup',name:n,slot:k,message:'Lineup player is not in the starting nine',structural:true,acknowledged:false});}
     const order=new Array(L.length).fill(null), notes={};
-    for(const [n,k] of Object.entries(LP)){ if(k>=1&&k<=L.length&&L.some(x=>x.name===n)){ order[k-1]=n; notes[k]='Fan override (pinned by Joseph); rules reflow around him'; } }
+    for(const [n,k] of Object.entries(LP)){ if(k>=1&&k<=L.length&&L.some(x=>x.name===n)){ order[k-1]=n; notes[k]='Fan override (pinned by you); rules reflow around him'; } }
     const free=k=>order[k-1]===null; const avail=df=>df.filter(x=>!order.includes(x.name));
     const top4=new Set(B.slice(0,Math.min(4,B.length)).map(x=>x.name));
     if(free(3)&&avail(B)[0]){ order[2]=avail(B)[0].name; notes[3]='#3 = best hitter (highest BatRuns/600)'; }
@@ -385,7 +385,7 @@ function withBM(team){
   const pitchers=team.pitchers.map(p=>{ const b=B.p[p.id]; const o=Object.assign({},p); if(b){ o.total=o.total+(b.d_oct+b.d_cl); o.SPx=o.SPx+(b.d_oct_SPx+b.d_cl_SPx); o.RPx=o.RPx+(b.d_oct_RPx+b.d_cl_RPx); } return o; });
   rankFirst(hitters,'total','total_rank'); rankFirst(pitchers,'total','p_rank');
   const t=Object.assign({},team,{hitters,pitchers,py:team.py_bm,bmOn:true,base:team}); delete t._S; delete t._P; delete t._bmT;
-  Object.defineProperty(team,'_bmT',{value:t,enumerable:false,writable:true}); return t;
+  Object.defineProperty(team,'_bmT',{value:t,enumerable:false,writable:true,configurable:true}); return t;
 }
 const API={slotValue,dhSwapGain,dhSwapEligible,build,fmt,POS,POS9,POSADJ,withBM,withCity,reviewPins,longQualification};
 if(typeof module!=='undefined'&&module.exports) module.exports=API; else root.LLEngine=API;

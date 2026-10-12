@@ -7,5 +7,5 @@ root.LL_DATA.rules='CURRENT SLOT SCORING (v1, October 12, 2026)\nSlot value = Of
 
 const prior=root.LLStatCorrections.apply;
 for(const t of root.LL_DATA.teams){const data=scores[t.code];if(data){t.py=data.py;t.py_bm=data.py_bm;}}
-root.LLStatCorrections.apply=function(t){prior(t);const data=scores[t.code];if(!data)return t;for(const h of t.hitters){const fields=data.scores[h.id];if(fields)Object.assign(h,fields);}delete t._S;delete t._P;delete t._bmT;t.py=data.py;t.py_bm=data.py_bm;return t;};
+root.LLStatCorrections.apply=function(t){prior(t);const data=scores[t.code];if(!data)return t;for(const h of t.hitters){const fields=data.scores[h.id];if(fields)Object.assign(h,fields);}delete t._S;delete t._P;t._bmT=undefined;t.py=data.py;t.py_bm=data.py_bm;return t;};
 })(window);
