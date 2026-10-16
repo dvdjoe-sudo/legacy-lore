@@ -47,7 +47,8 @@ function longQualification(team,p){
  return {ok:native||sp6,type:native?'LONG':sp6?'LONG/SP6':null,native,sp6,workload:w};
 }
 function reviewPins(team,raw){
- const benchSize=[5,6,7].includes(raw?.rules?.bench_size)?raw.rules.bench_size:5,penSize=12-benchSize;
+ const baseBenchSize=[5,6,7].includes(raw?.rules?.bench_size)?raw.rules.bench_size:5, noDH=raw?.rules?.no_dh===true;
+  const benchSize=baseBenchSize+(noDH?1:0),penSize=12-baseBenchSize;
  raw=raw||{}; const pins={roster:{},staff:{},lineup:{},rules:raw.rules||{},acknowledged:raw.acknowledged||[]},warnings=[];
  const H=new Map(team.hitters.map(h=>[h.name,h])),P=new Map(team.pitchers.map(p=>[p.name,p]));
  const slots={roster:new Map(),staff:new Map(),lineup:new Map()}; let nr=0,np=0;
@@ -55,8 +56,10 @@ function reviewPins(team,raw){
  const eligible=(h,p)=>p==='DH'||(gp(h,p)>0&&gp(h,p)>=h.elig_min);
  function issue(kind,name,slot,message,structural){const key=JSON.stringify([kind,name,slot,message]);const acknowledged=!structural&&pins.acknowledged.includes(key);warnings.push({key,kind,name,slot,message,structural,acknowledged});return acknowledged;}
  for(const kind of ['roster','staff','lineup']) for(const [name,slot] of Object.entries(raw[kind]||{})){
+   // Preserve DH and #9 batting pins for when DH mode is switched back on.
+   if(noDH&&((kind==='roster'&&slot==='DH')||(kind==='lineup'&&slot===9))) continue;
   const row=(kind==='staff'?P:H).get(name);
-  const allowed=kind==='roster'?POS9.concat(['C2','UTIL-IF','OF4','BAT'],benchSize>=6?['BAT2']:[],benchSize===7?['BAT3']:[]).includes(slot):kind==='staff'?['ROT','PEN','CL','SU1','SU2','LHS','LONG'].concat(penSize>=6?['MID1']:[],penSize===7?['MID2']:[]).includes(slot):Number.isInteger(slot)&&slot>=1&&slot<=9;
+  const allowed=kind==='roster'?(noDH?POS:POS9).concat(['C2','UTIL-IF','OF4','BAT'],benchSize>=6?['BAT2']:[],benchSize>=7?['BAT3']:[],benchSize>=8?['BAT4']:[]).includes(slot):kind==='staff'?['ROT','PEN','CL','SU1','SU2','LHS','LONG'].concat(penSize>=6?['MID1']:[],penSize===7?['MID2']:[]).includes(slot):Number.isInteger(slot)&&slot>=1&&slot<=(noDH?8:9);
   if(!row||!allowed){issue(kind,name,slot,'Unknown player or assignment',true);continue;}
   const unique=!(kind==='staff'&&['ROT','PEN'].includes(slot));
   if(unique&&slots[kind].has(slot)){issue(kind,name,slot,'Conflicting assignment with '+slots[kind].get(slot),true);continue;}
@@ -94,13 +97,14 @@ function dhSwapGain(dh,fielder,pos){return slotValue(dh,pos)+slotValue(fielder,'
 function dhSwapEligible(dh,fielder,pos,minGap=1){const gap=dh['rf150_'+pos]-fielder['rf150_'+pos],gain=dhSwapGain(dh,fielder,pos);return Number.isFinite(gap)&&gap>=Math.max(1,minGap)&&Number.isFinite(gain)&&gain>0;}
 function build(team,pins){
   const reviewed=team.cityUnavailable?{pins:pins||{},warnings:[]}:reviewPins(team,pins); pins=reviewed.pins; const warnings=reviewed.warnings; const HF=new Set(team.hfloat||[]);
-  const benchSize=[5,6,7].includes(pins.rules?.bench_size)?pins.rules.bench_size:5,penSize=12-benchSize;
+  const NO_DH=pins.rules?.no_dh===true, baseBenchSize=[5,6,7].includes(pins.rules?.bench_size)?pins.rules.bench_size:5;
+   const benchSize=baseBenchSize+(NO_DH?1:0),penSize=12-baseBenchSize, startingPositions=NO_DH?POS:POS9;
   const PX=team._P||(team._P=prep(team.pitchers));
   const reservedPitchers=new Set(Object.keys(pins.staff||{}).map(n=>PX.find(p=>p.name===n)?.id));
   const S=(team._S||(team._S=prep(team.hitters))).filter(h=>!reservedPitchers.has(h.id));
   const THIN=!!(team.city||team.thinCity);
   if(!S.length){
-    const gaps=POS9.concat(['C2','UTIL','FLEX','BAT','SP1','SP2','SP3','SP4','SP5','CL','SU1','SU2','LHS','LONG','MID1','MID2']);
+    const gaps=startingPositions.concat(['C2','UTIL','FLEX','BAT','SP1','SP2','SP3','SP4','SP5','CL','SU1','SU2','LHS','LONG','MID1','MID2']);
     return {start:{},bench:{},rotation:{},pen:{},lineup:[],log:[],hfix:[],dh_table:[],pen_q:[],rot_scores:[],pit_omit:[],close_calls:[],rot_log:[],pen_log:[],pit_tie_log:[],dh_rule_log:[],dh_swap:null,team_runs:team.cityUnavailable?null:0,cityUnavailable:!!team.cityUnavailable,guard_log:[],util_failed:[],gaps,thin:true,warnings,pins:pins||{},_objs:{start:{},bench:{},rot:[],pen:[],roles:{}}};
   }
   const byName=new Map(S.map(h=>[h.name,h]));
@@ -119,23 +123,24 @@ function build(team,pins){
     }
   }
   const RP_PINS=pins.roster||{};
-  const pinned_start={}; for(const [n,slot] of Object.entries(RP_PINS)) if(POS9.includes(slot)) pinned_start[slot]=byName.get(n);
+  const pinned_start={}; for(const [n,slot] of Object.entries(RP_PINS)) if(startingPositions.includes(slot)) pinned_start[slot]=byName.get(n);
   const pin_names=new Set(Object.keys(RP_PINS));
   const cand=sortBy(S.filter(h=>!pin_names.has(h.name)),'total',false).slice(0,60);
-  let m0=0; for(const p in pinned_start) m0+=1<<POS9.indexOf(p);
+  let m0=0; for(const p in pinned_start) m0+=1<<startingPositions.indexOf(p);
   let dp=new Map([[m0,[0,0,[]]]]);
   const gt=(a,b)=>a[0]!==b[0]?a[0]>b[0]:a[1]>b[1];
   cand.forEach((h,i)=>{ const nw=new Map(dp);
-    for(const [mask,[s,t,l]] of dp){ for(let j=0;j<9;j++){ const p=POS9[j];
+    for(const [mask,[s,t,l]] of dp){ for(let j=0;j<startingPositions.length;j++){ const p=startingPositions[j];
       if(!((mask>>j)&1)&&start_ok(h,p)){ const m2=mask|(1<<j); const v=[s+slotValue(h,p),t+h.total]; const cur=nw.get(m2)||[-1e9,-1e9];
         if(gt(v,cur)) nw.set(m2,[v[0],v[1],l.concat([[p,i]])]); } } }
     dp=nw; });
-  let bestMask=511, bestVal=dp.get(511);
+  const fullMask=(1<<startingPositions.length)-1;
+   let bestMask=fullMask, bestVal=dp.get(fullMask);
   if(!bestVal){ bestVal=[-1e9,-1e9,[]]; for(const [m,v] of dp){ if(gt(v,bestVal)){ bestVal=v; bestMask=m; } } }
   const start={}; const gaps=[];
   if(bestVal[2]&&bestVal[2].length) for(const [p,i] of bestVal[2]) start[p]=cand[i];
   for(const p in pinned_start) if(pinned_start[p]) start[p]=pinned_start[p];
-  if(THIN) for(const p of POS9) if(!(p in start)) gaps.push(p);
+  if(THIN) for(const p of startingPositions) if(!(p in start)) gaps.push(p);
   // DH glove rule
   const DHR=('dh_defense_first' in rules)?rules.dh_defense_first:{k:3,min_gap:1.0}; const dhrule_log=[]; let dhswap=null;
   if(DHR&&start.DH&&!('DH' in pinned_start)){
@@ -156,7 +161,7 @@ function build(team,pins){
   }
   for(const p of POS){ const h=start[p]; if(!h) continue; const mp=most_played(h);
     guard_log.push(`${p}: ${h.name} - ${trunc(gpos(h,p))} of ${trunc(h.G_team)} franchise G (${f0(100*gpos(h,p)/Math.max(h.G_team,1))}%) at ${p}; most-played ${mp==='LF'?'LF/RF':mp}`+((p in pinned_start)?' (pinned)':'')); }
-  const rawTeamValue=pySum(POS9.filter(p=>start[p]).map(p=>slotValue(start[p],p)));
+  const rawTeamValue=pySum(startingPositions.filter(p=>start[p]).map(p=>slotValue(start[p],p)));
   const TEAM_RUNS=Number.isFinite(rawTeamValue)?rawTeamValue:null;
   if(TEAM_RUNS===null) warnings.push({kind:'value',name:'Starting nine',slot:'VALUE',message:'Team value unavailable: an acknowledged position exception has no approved score at that position. The player choice is preserved; no score is estimated.',informational:true});
   const tie_log=[];
@@ -330,7 +335,7 @@ function build(team,pins){
   else {if(!gaps.includes('LONG'))gaps.push('LONG');warnings.push({kind:'qualification',name:'LONG / SP6',slot:'LONG',message:'No qualified long reliever available without displacing a protected assignment. LONG requires three qualifying franchise seasons, 100 relief IP and long-relief usage (1.5 relief IP per appearance), or an eligible starter outside the rotation with 300 starter IP and 100 relief IP.',informational:true});}
   let midI=1; sortBy(left,'RPx',false).forEach(r=>{ while(roles['MID'+midI]) midI++; roles['MID'+midI]=r; midI++; });
   // lineup
-  const L=POS9.filter(p=>start[p]).map(p=>Object.assign({},start[p],{slot_pos:p}));
+  const L=startingPositions.filter(p=>start[p]).map(p=>Object.assign({},start[p],{slot_pos:p}));
   let lineup=[], hfix=[];
   if(L.length){
     { const a=zs(L.map(x=>x.SBrate)), b=zs(L.map(x=>x.rbr600)), c=zs(L.map(x=>x.OBPplus)); L.forEach((x,i)=>{ x.bat=x.rbat600; x.speed=a[i]+b[i]; x.lead=0.7*c[i]+0.3*x.speed; }); }
@@ -359,9 +364,13 @@ function build(team,pins){
       hfix.push(`swap ${order[i]} <-> ${order[j]}`); [order[i],order[j]]=[order[j],order[i]]; r=run3(order); }
     lineup=order.filter(Boolean).map((n,i)=>{ const x=Li.get(n); return {slot:i+1,name:n,pos:x.slot_pos,bats:x.bats,OBP:x.OBP,SLG:x.SLG,OBPplus:trunc(x.OBPplus),ISO:x.ISO,ISOplus:trunc(x.ISOplus),bat600:x.rbat600,SB:trunc(x.SB),note:notes[i+1]||''}; });
   }
-  const r3=x=>npRound(x,3);
+  if(NO_DH){
+     // Pitcher batting statistics are absent from this franchise scoring export.
+     lineup.push({slot:9,name:rot[0]?.name||'Pitcher not available',pos:'P',bats:'–',OBP:null,SLG:null,OBPplus:null,ISO:null,ISOplus:null,bat600:null,SB:null,note:'Starting pitcher bats ninth; pitcher batting statistics unavailable.'});
+   }
+   const r3=x=>npRound(x,3);
   if(THIN){ for(const k of ['CL','SU1','SU2','LHS','LONG','MID1','MID2']) if(!roles[k]) gaps.push(k); }
-  const out={start:Object.fromEntries(POS9.filter(p=>start[p]).map(p=>[p,start[p].name])),bench:Object.fromEntries(Object.entries(bench).map(([k,v])=>[k,v.name])),
+  const out={start:Object.fromEntries(startingPositions.filter(p=>start[p]).map(p=>[p,start[p].name])),bench:Object.fromEntries(Object.entries(bench).map(([k,v])=>[k,v.name])),
     rotation:Object.fromEntries(rot.map((x,i)=>['SP'+(i+1),x.name])),pen:Object.fromEntries(Object.entries(roles).map(([k,v])=>[k,v.name])),lineup,log,hfix,dh_table,
     pen_q:pen.map(x=>({name:x.name,throws:x.throws,RPx:r3(x.RPx),total:r3(x.total),KBB:r3(x.KBB),ERAplus:r3(x.ERAplus),SV:r3(x.SV),q:r3(x.q),ip_per_app:r3(x.ip_per_app),...(x.sv_term!==undefined&&x.sv_term!==null?{sv_term:r3(x.sv_term),sv_SV:r3(x.sv_SV),sv_BS:r3(x.sv_BS)}:{})})),
     rot_scores:rot.map(x=>({name:x.name,SPx:r1(x.SPx),total:r1(x.total)}))};
