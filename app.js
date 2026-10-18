@@ -3,8 +3,8 @@
 (function(){
 'use strict';
 const D=window.LL_DATA, E=window.LLEngine, $=s=>document.querySelector(s);
-const APP_UI='v2.2.4';   // app UI version (data/app_version from export_app_data.py stays as exported)
-const CMP=window.LLCompare, CHG=window.LL_CHANGES||null;
+const APP_UI='v2.2.5';   // app UI version (data/app_version from export_app_data.py stays as exported)
+const CMP=window.LLCompare, CHG=window.LL_CHANGES||null, SHARE=window.LLShare;
 // v1.9: the engine writes "pinned by Joseph" into fan-override receipts (kept for JS == Python parity); the UI shows it neutrally for every user
 const neutral=s=>String(s==null?'':s).replace(/pinned by Joseph/g,'pinned by you');
 const POS=E.POS, POS9=E.POS9, f1=x=>x===null||x===undefined||Number.isNaN(x)?'N/A':E.fmt(x,1), f0=x=>E.fmt(x,0), p1=x=>x===null||x===undefined||Number.isNaN(x)?'N/A':E.fmt(x,1,true), f3=x=>E.fmt(x,3);
@@ -69,7 +69,7 @@ function savePins(k,p){ try{ localStorage.setItem(pkey(k),JSON.stringify(p)); re
 function cleanPins(t,raw){ return {pins:raw||{},dropped:[]}; }
 const pinCount=p=>['roster','lineup','staff'].reduce((a,k)=>a+Object.keys(p[k]||{}).length,0)+Object.keys(p.rules||{}).length;
 // ---------- state ----------
-let CUR=null; // {t, raw, pins, dropped, o}
+let CUR=null, SHARED=null; // active clubhouse and read-only shared snapshot
 function compute(k){ const t0=TEAM(k), t=teamFor(withCity(t0)); const raw=loadPins(k); const c=cleanPins(t,raw); const o=E.build(t,c.pins); CUR={t,t0,raw,pins:c.pins,dropped:c.dropped,o,city:t.city||null}; return CUR; }
 function setPins(fn){ const k=CUR.t.key; if(PIN_ERRORS[k]){toast('Reset or recover unreadable saved settings first');return false;} const p=JSON.parse(JSON.stringify(CUR.raw)); fn(p);
   const review=E.build(CUR.t,p);
@@ -164,6 +164,20 @@ function gapsBanner(){
  for(const w of CUR.o.warnings||[]) messages.push(w.name+' → '+w.slot+': '+w.message+(w.informational?'':w.acknowledged?' (exception explicitly acknowledged)':' (assignment rejected; acknowledgment required for exceptions)'));
  return messages.length?'<div class="banner">'+messages.map(esc).join('<br>')+'</div>':'';
 }
+function vShared(k){
+  compute(k);nav('club');SHARED=null;
+  const token=new URLSearchParams(location.hash.split('?')[1]||'').get('roster');
+  let snap;
+  try{snap=SHARE.decode(token,k);SHARED=snap;}
+  catch(e){return `<div class="panel"><h1>Shared roster unavailable</h1><p>The link is incomplete or not supported.</p><a class="btn p" href="#/${esc(k)}">Open ${esc(CUR.t0.name)} Clubhouse</a></div>`;}
+  const table=(title,rows,batting=false)=>`<div class="card"><h3>${esc(title)}</h3><table><thead><tr><th>${batting?'#':'Slot'}</th><th>Player</th>${batting?'<th>Position</th>':''}</tr></thead><tbody>${rows.map(([slot,name],i)=>`<tr><td><span class="pos">${batting?i+1:esc(slot)}</span></td><td><b>${esc(name)}</b></td>${batting?`<td>${esc(slot)}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
+  return `<div class="panel"><div class="teamhead"><div><h1>${esc(snap.n)} — Shared All-Time Roster</h1><div class="meta">${snap.c?esc(snap.c):'Full franchise'} · ${snap.d?'No DH · Pitcher bats ninth':'With DH'}${snap.m?' · Big Moments ON':''}</div></div></div>
+  <p class="small muted">This is a read-only snapshot of the roster someone shared with you. Opening this link does not replace your own saved picks or settings.</p>
+  <div class="tools"><a class="btn p" href="#/${esc(k)}">Build my own roster</a><button class="btn" data-act="copy-shared">Copy shared roster</button></div>
+  <div class="grid">${table('Batting order',snap.l,true)}${table('Bench',snap.b)}</div>
+  <div class="grid">${table('Rotation',snap.r)}${table('Bullpen',snap.p)}</div>
+  <p class="small muted">Roster snapshot only. Player scores may change in later engine updates, but the names in this shared link stay the same.</p></div>`;
+}
 function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; const ob=o._objs;
   const logBy=s=>o.log.find(l=>l.slot===s);
   const lineup=o.lineup.map(l=>{ if(l.pos==='P') return `<tr><td class="slot">9</td><td><span class="pos">P</span> <span class="name">${esc(l.name)}</span><div class="small muted">Starting pitcher bats ninth · batting data unavailable</div></td>${'<td class="n">–</td>'.repeat(7)}</tr>`; const h=hitter(l.name); const lg=logBy(l.pos);
@@ -182,7 +196,7 @@ function vClub(k){ compute(k); nav('club'); const t=CUR.t, t0=CUR.t0, o=CUR.o; c
   const omitP=o.pit_omit.map(x=>`<tr class="click" data-card="p" data-n="${esc(x.name)}"><td><span class="name">${esc(x.name)}</span></td><td class="n">${x.combined} <span class="muted small">#${x.p_rank}</span></td><td class="small">Starter ${x.SPx}${x.sp_ok?'':' (not SP-eligible)'} · Reliever ${x.RPx}${x.rp_ok?'':' (not RP-eligible)'} · ${x.G} G, ${x.GS} GS</td></tr>`).join('');
   const logs=[['DH glove rule',o.dh_rule_log],['Rotation',o.rot_log],['Bullpen',o.pen_log],['Pitcher 2% ties',o.pit_tie_log],['Lineup handedness',o.hfix]].filter(x=>x[1]&&x[1].length);
   return `<div class="panel">${franchiseMasthead(t0)}<div class="teamhead"><div><h1>${esc(t.name)} ${thinTag(t)}</h1><div class="meta">${esc(t.history)} · ${t.since}–2026 (${t.seasons} seasons)</div><div class="meta">All-time franchise clubhouse · engine ${esc(engLabel())} · data exported ${esc(D.exported)}</div></div>
-   <div class="tools"><label class="small bmlabel"><input type="checkbox" data-act="bm" ${BMON?'checked':''}> <b>Big Moments</b></label>${cityPicker(t0)}${gapsBanner()}<button class="btn" data-act="copy">Copy roster for post</button><button class="btn" data-act="export">Export roster JSON</button><label class="small"><input type="checkbox" data-act="no-dh" ${CUR.pins.rules?.no_dh===true?'checked':''}> No DH (pitcher bats 9th)</label><label class="small"><input type="checkbox" data-act="rule-dh" ${CUR.pins.rules&&CUR.pins.rules.dh_defense_first===false?'':'checked'}> DH glove rule</label><label class="small"><input type="checkbox" data-act="rule-guard" ${guardOn()?'checked':''}> Start guard</label></div></div>
+   <div class="tools"><label class="small bmlabel"><input type="checkbox" data-act="bm" ${BMON?'checked':''}> <b>Big Moments</b></label>${cityPicker(t0)}${gapsBanner()}<button class="btn p" data-act="share-roster">Share My Roster</button><button class="btn" data-act="copy">Copy roster for post</button><button class="btn" data-act="export">Export roster JSON</button><label class="small"><input type="checkbox" data-act="no-dh" ${CUR.pins.rules?.no_dh===true?'checked':''}> No DH (pitcher bats 9th)</label><label class="small"><input type="checkbox" data-act="rule-dh" ${CUR.pins.rules&&CUR.pins.rules.dh_defense_first===false?'':'checked'}> DH glove rule</label><label class="small"><input type="checkbox" data-act="rule-guard" ${guardOn()?'checked':''}> Start guard</label></div></div>
    ${bmBanner()}${pinBanner()}
    <div class="grid"><div>${field()}<div class="small muted" style="text-align:center">${CUR.pins.rules?.no_dh===true?'Eight-fielder':'Nine-starter'} value <b>${f1(o.team_runs)} W</b> (fielders scored by APEX; ${CUR.pins.rules?.no_dh===true?'pitcher batting not scored':'DH = Off-APEX'})</div></div>
    <div class="card"><h3>Lineup</h3><table class="lineup"><thead><tr><th></th><th>Batting order</th><th class="n hide-s">OBP</th><th class="n hide-s">SLG</th><th class="n hide-s">OBP+</th><th class="n hide-s" title="APEX-R batting runs per 600 plate appearances">Bat/600</th><th class="n" title="Fielding runs saved above average per 150 games at his assigned position; DH has no defensive score">Defense</th><th class="n" title="Existing baserunning runs above average per 600 plate appearances; a running-value guide, not measured sprint speed">Speed</th><th class="n" title="Value at his slot (W)">Value</th></tr></thead><tbody>${lineup}</tbody></table><p class="small muted">Defense: runs saved per 150 games at this position. Speed: baserunning value per 600 plate appearances, not sprint speed. Positive is above average; DH has no defensive score.</p></div></div>
@@ -400,6 +414,19 @@ function rosterText(){ const t=CUR.t,o=CUR.o; if(t.cityUnavailable)return t.name
   if(o.close_calls.length){ L.push('','CLOSE CALLS'); for(const c of o.close_calls) L.push(`${c.slot}: ${c.pick} ${c.pick_v} vs ${c.alt} ${c.alt_v} (${c.pct}%)`); }
   if(o.warnings?.length){L.push('','WARNINGS');for(const w of o.warnings)L.push(w.name+' / '+w.slot+': '+w.message+(w.acknowledged?' (explicitly acknowledged)':''));}
   return L.join('\n'); }
+function rosterShareUrl(){
+  const snapshot=SHARE.capture(CUR.t0,CUR.o,{city:CUR.city,bigMoments:BMON,noDH:CUR.pins.rules?.no_dh===true});
+  return location.href.split('#')[0]+'#/'+CUR.t0.key+'/shared?roster='+SHARE.encode(snapshot);
+}
+function shareRoster(){
+  try{
+    const url=rosterShareUrl(),title='Legacy Lore Clubhouse · '+CUR.t.name+' All-Time Roster';
+    if(navigator.share){
+      navigator.share({title,text:'Here is my all-time roster. Who would you change?',url})
+        .catch(e=>{if(!e||e.name!=='AbortError')copy(url,'Roster share link copied');});
+    }else copy(url,'Roster share link copied');
+  }catch(e){toast('Unable to share this roster: '+e.message);}
+}
 function copy(txt,msg){ const done=()=>toast(msg||'Copied'); if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(txt).then(done,()=>fallback()); else fallback();
   function fallback(){ const a=document.createElement('textarea'); a.value=txt; document.body.appendChild(a); a.select(); try{document.execCommand('copy'); done();}catch(e){ prompt('Copy:',txt);} a.remove(); } }
 function toast(m){ let d=$('#toast'); if(!d){ d=document.createElement('div'); d.id='toast'; d.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d232b;color:#fff;padding:8px 14px;border-radius:8px;z-index:99;font-size:14px'; document.body.appendChild(d);} d.textContent=m; d.style.display='block'; clearTimeout(d._t); d._t=setTimeout(()=>d.style.display='none',1800); }
@@ -408,10 +435,10 @@ function foot(){ $('#foot').innerHTML=`Legacy Lore Clubhouse app ${esc(APP_UI)} 
 // ---------- router ----------
 let VIEW='';
 function render(){
-  if(location.hash.startsWith('#/rankings')&&!D.teams.every(t=>LLData.loaded(t.key))){ nav('rankings'); $('#app').innerHTML='<div class="panel"><h1>Team Rankings</h1><p>Loading all team rosters…</p></div>'; LLRankings.load().then(()=>{if(location.hash.startsWith('#/rankings'))render();},e=>{$('#app').innerHTML='<div class="banner">Rankings could not load: '+esc(e.message)+'</div>';}); return; } const h=location.hash.replace(/^#\/?/,'').split('/'); const k=h[0].split('?')[0]; let html; const jump=new URLSearchParams(location.hash.split('?')[1]||'').get('city'); if(TEAM(k)&&jump&&citiesFor(TEAM(k)).some(c=>c.key===jump)){saveCity(k,jump);location.hash='#/'+k;return;}
+  if(location.hash.startsWith('#/rankings')&&!D.teams.every(t=>LLData.loaded(t.key))){ nav('rankings'); $('#app').innerHTML='<div class="panel"><h1>Team Rankings</h1><p>Loading all team rosters…</p></div>'; LLRankings.load().then(()=>{if(location.hash.startsWith('#/rankings'))render();},e=>{$('#app').innerHTML='<div class="banner">Rankings could not load: '+esc(e.message)+'</div>';}); return; } const h=location.hash.split('?')[0].replace(/^#\/?/,'').split('/'); const k=h[0].split('?')[0]; let html; const jump=new URLSearchParams(location.hash.split('?')[1]||'').get('city'); if(TEAM(k)&&jump&&citiesFor(TEAM(k)).some(c=>c.key===jump)){saveCity(k,jump);location.hash='#/'+k;return;}
   if(TEAM(k)&&!LLData.loaded(k)){ const t=TEAM(k); $('#app').innerHTML=`<p class="loading">Loading ${esc(t.name)}…</p>`; foot();   // app v1.3.1: decode this team, then draw
     LLData.ensure(k).then(()=>{ if(location.hash.replace(/^#\/?/,'').split('/')[0]===k) render(); },e=>{ $('#app').innerHTML=`<div class="banner">Could not load ${esc(t.name)}: ${esc(e.message)}</div>`; }); return; }
-  if(TEAM(k)){ VIEW=h[1]||''; html=VIEW==='compare'?vCompare(k):VIEW==='hitters'?vHit(k):VIEW==='pitchers'?vPit(k):['history','almanac','lore'].includes(VIEW)?vTeamLore(k,VIEW,h[2]):vClub(k); }
+  if(TEAM(k)){ VIEW=h[1]||''; html=VIEW==='shared'?vShared(k):VIEW==='compare'?vCompare(k):VIEW==='hitters'?vHit(k):VIEW==='pitchers'?vPit(k):['history','almanac','lore'].includes(VIEW)?vTeamLore(k,VIEW,h[2]):vClub(k); }
   else if(k==='history'){ CUR=null; nav('league'); html=LLLoreUI.league(h[1]); }
   else if(k==='rankings'){ CUR=null; nav('rankings'); html=LLRankings.view(BMON); }
   else if(k==='rules') html=vRules(); else if(k==='about') html=vAbout(); else html=vHome();
@@ -432,6 +459,8 @@ document.addEventListener('click',e=>{
   const s=e.target.closest('[data-sort]'); if(s){ const [tb,col]=s.dataset.sort.split(':'); SORT[tb]=SORT[tb][0]===col?[col,!SORT[tb][1]]:[col,['name','throws','pos','conf','total_rank','p_rank'].includes(col)]; render(); return; }
   const a=e.target.closest('[data-act]'); if(a){ const act=a.dataset.act;
     if(act==='changes'){ e.preventDefault(); changesSheet(); return; }
+    if(act==='share-roster'){shareRoster();return;}
+    if(act==='copy-shared'&&SHARED){copy(SHARE.toText(SHARED),'Shared roster copied');return;}
     if(act==='dopin'){ const kind=a.dataset.kind, n=a.dataset.n, slot=a.dataset.slot;
       const applied=setPins(p=>{ if(kind==='roster'){ p.roster=p.roster||{}; applyRosterPin(p,n,slot); } else { p.staff=p.staff||{}; applyStaffPin(p,n,/^SP/.test(slot)?'ROT':slot); } });
       if(applied===false)return; $('#modal').hidden=true; toast('Pinned '+n+' to '+slot); return; }
