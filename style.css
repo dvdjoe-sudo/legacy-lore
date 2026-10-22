@@ -291,3 +291,23 @@ html[data-team="yankees"] body{background:repeating-linear-gradient(90deg,transp
 html[data-team="yankees"] .ace-marker b{color:#ffe2a0}
 
 .rank-scroll{overflow-x:auto}.rank-table{width:100%;min-width:620px}.rank-team{border-left:5px solid var(--rank-color);padding-left:10px}.rank-table td{padding:12px 8px}.rank-table tr:nth-child(even){background:#f1eddf}.rank-tools label{display:flex;gap:6px;align-items:center}.rank-total{font-weight:bold;font-size:1.15em}
+
+.rank-table-full{min-width:920px}
+.rank-table-ace{min-width:740px}
+.rank-table-nine{min-width:620px}
+.rank-table .rank-roster-row td{padding:0 12px 9px;border-bottom:1px solid #dedacd}
+.rank-roster-details{margin:0}
+.rank-roster-details summary{display:list-item;width:max-content;max-width:100%;cursor:pointer;color:var(--t1);padding:4px 4px 6px 16px;font-weight:600;font-size:13px}
+.rank-roster-details summary:hover{text-decoration:underline}
+.rank-roster-details[open] summary{margin-bottom:8px}
+.rank-roster-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:8px 4px}
+.rank-roster-unit{min-width:0;padding:10px;background:var(--bg,#fff);border:1px solid #dedacd;border-radius:9px}
+.rank-roster-unit h4{margin:0 0 8px;font-size:14px}
+.rank-roster-list{list-style:none;margin:0;padding:0;font-size:12px}
+.rank-roster-list li{display:flex;align-items:baseline;gap:7px;padding:5px 0;border-top:1px solid #e9e7df}
+.rank-roster-list li:first-child{border-top:none}
+.rank-roster-role{min-width:43px;font-weight:700;font-size:11px;flex-shrink:0}
+.rank-roster-name{flex:1;overflow-wrap:anywhere}
+.rank-roster-value{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--t2)}
+@media(max-width:750px){.rank-roster-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.rank-roster-grid{grid-template-columns:minmax(0,1fr)}}
