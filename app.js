@@ -3,7 +3,7 @@
 (function(){
 'use strict';
 const D=window.LL_DATA, E=window.LLEngine, $=s=>document.querySelector(s);
-const APP_UI='v2.2.5';   // app UI version (data/app_version from export_app_data.py stays as exported)
+const APP_UI='v2.2.6';   // app UI version (data/app_version from export_app_data.py stays as exported)
 const CMP=window.LLCompare, CHG=window.LL_CHANGES||null, SHARE=window.LLShare;
 // v1.9: the engine writes "pinned by Joseph" into fan-override receipts (kept for JS == Python parity); the UI shows it neutrally for every user
 const neutral=s=>String(s==null?'':s).replace(/pinned by Joseph/g,'pinned by you');
