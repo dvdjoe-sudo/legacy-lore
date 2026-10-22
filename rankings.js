@@ -66,12 +66,12 @@ function view(bm){
      <td>${v===null?'—':rank}</td>
      <td><div class="rank-team" style="--rank-color:${r.color}">
        <a href="${teamUrl}"><b>${esc(r.name)}</b></a>
-       <div class="small muted">${esc(r.years)} · ${r.lg}${incomplete}</div>${rosterDetails(r)}
+       <div class="small muted">${esc(r.years)} · ${r.lg}${incomplete}</div>
      </div></td>
      <td class="n">${f(r.nine)}</td>
      ${state.mode==='full'?`<td class="n">${f(r.benchValue)}</td><td class="n">${f(r.rotationValue)}</td><td class="n">${f(r.bullpenValue)}</td>`:''}
      ${state.mode==='ace'?`<td>${esc(r.ace||'No qualified ace')}</td><td class="n">${f(r.aceValue)}</td>`:''}
-     <td class="n rank-total">${f(v)}</td></tr>`;
+     <td class="n rank-total">${f(v)}</td></tr><tr class="rank-roster-row"><td colspan="${state.mode==='full'?7:state.mode==='ace'?6:4}">${rosterDetails(r)}</td></tr>`;
  }).join('');
  const select=(id,label,values,current)=>`<label>${label} <select id="${id}">${values.map(([v,n])=>`<option value="${v}" ${v===current?'selected':''}>${n}</option>`).join('')}</select></label>`;
  const full=state.mode==='full',ace=state.mode==='ace',label=full?'Full 26 Index':ace?'Nine + Ace':'Starting Nine';
@@ -89,7 +89,7 @@ function view(bm){
    </div>
    <p class="small muted">${rows.length} teams · ${bm?'Big Moments on':'Big Moments off'} for every roster. ${intro} Rankings are automatic standard builds; your saved picks remain unchanged.</p>
    ${state.scope==='city'?'<div class="banner">Historical city editions replace relocated franchises here. Each player belongs to the city where he played the most franchise games and keeps all franchise statistics and scoring credit. These are city-assigned rosters, not city-only statistics. League filters use the franchise’s current league.</div>':''}
-   <div class="rank-scroll"><table class="rank-table"><thead><tr>
+   <div class="rank-scroll"><table class="rank-table rank-table-${state.mode}"><thead><tr>
      <th>Rank</th><th>Team / Full Roster</th><th class="n">Starting Nine</th>
      ${full?'<th class="n">Bench (5)</th><th class="n">Rotation (5)</th><th class="n">Bullpen (7)</th>':''}
      ${ace?'<th>Ace / SP1</th><th class="n">Ace Value</th>':''}
