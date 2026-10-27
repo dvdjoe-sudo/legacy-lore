@@ -1,0 +1,12 @@
+# Legacy Lore Clubhouse
+
+> All-time 26-man rosters for all 30 MLB franchises. Compare lineups, rotations, and bullpens, and argue the close calls.
+
+The Clubhouse builds an all-time 26-man roster for every MLB franchise from that club's own history: a starting lineup, a five-man rotation, a seven-man bullpen with defined jobs, and a working bench. It also offers head-to-head team comparisons, all-time team rankings, franchise history, and player lore. The app is a single-page JavaScript application; team pages live at hash routes under the home URL (for example #/yankees).
+
+## Pages
+
+- [Home](https://dvdjoe-sudo.github.io/legacy-lore/): all 30 franchises and every team roster
+- [Rankings](https://dvdjoe-sudo.github.io/legacy-lore/#/rankings): all-time team rankings
+- [Rules](https://dvdjoe-sudo.github.io/legacy-lore/#/rules): how rosters are built
+- [About](https://dvdjoe-sudo.github.io/legacy-lore/#/about): about the Clubhouse
