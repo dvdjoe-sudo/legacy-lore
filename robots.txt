@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://dvdjoe-sudo.github.io/legacy-lore/sitemap.xml
